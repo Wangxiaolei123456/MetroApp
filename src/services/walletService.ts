@@ -131,8 +131,8 @@ export async function queryNfts(
 ): Promise<NftAsset[]> {
   if (WALLET_MOCK) {
     return [
-      {id: 'n1', name: 'Metro Pioneer', collection: 'MetroChain OG', tokenId: '1'},
-      {id: 'n2', name: 'Ride Master', collection: 'MetroChain OG', tokenId: '7'},
+      {id: 'n1', name: 'Metro Pioneer', collection: 'Metro OG', tokenId: '1'},
+      {id: 'n2', name: 'Ride Master', collection: 'Metro OG', tokenId: '7'},
     ];
   }
   return [];

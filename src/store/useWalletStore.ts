@@ -1,7 +1,8 @@
 import {create} from 'zustand';
 import {ChainEnv, ChainTx, NftAsset, TokenBalance, WalletAccount} from '@/types';
 import * as wallet from '@/services/walletService';
-import {secureStore, storage, STORAGE_KEYS} from '@/services/storage';
+import {sendEvmNativeReward} from '@/services/evmWallet';
+import {secureStore, STORAGE_KEYS} from '@/services/storage';
 import {APP_CONFIG} from '@/config/app';
 import {useUserStore} from './useUserStore';
 import {useTaskStore} from './useTaskStore';
@@ -11,16 +12,16 @@ interface WalletState {
   balances: TokenBalance[];
   nfts: NftAsset[];
   txs: ChainTx[];
-  /** 乘车奖励 Token 累计（本地账本；上链前为演示数据） */
-  rideTokens: number;
   loading: boolean;
   error: string | null;
+  /** 最近一次乘车发奖结果（成功哈希或失败信息） */
+  lastReward: {hash?: string; error?: string; amount?: number} | null;
   init: () => Promise<void>;
   create: (env?: ChainEnv) => Promise<void>;
   import: (mnemonic: string, env?: ChainEnv) => Promise<void>;
   switchEnv: (env: ChainEnv) => Promise<void>;
   refresh: () => Promise<void>;
-  /** 行程完成时按站数累加乘车奖励 Token（每站 rideTokenPerStop） */
+  /** 行程完成：按站数向用户 EVM 钱包直发 UPTICK */
   creditRideTokens: (stationCount: number) => Promise<void>;
 }
 
@@ -29,14 +30,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   balances: [],
   nfts: [],
   txs: [],
-  rideTokens: 0,
   loading: false,
   error: null,
+  lastReward: null,
   async init() {
     const meta = await wallet.loadWalletMeta();
     set({meta});
-    const rideTokens = await storage.get<number>(STORAGE_KEYS.rideTokens);
-    if (rideTokens != null) set({rideTokens});
     if (meta) await get().refresh();
   },
   async create(env = 'testnet') {
@@ -70,7 +69,6 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   async refresh() {
     let meta = get().meta;
     if (!meta) return;
-    // 补齐旧钱包缺失的 EVM 地址
     if (!meta.evmAddress) {
       meta = (await wallet.loadWalletMeta()) ?? meta;
       set({meta});
@@ -85,35 +83,45 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   async switchEnv(env) {
     const mnemonic = await secureStore.getSecret(STORAGE_KEYS.walletSecret);
     if (!mnemonic) return;
-    const meta = await wallet.importWallet(mnemonic, env); // D5 重新导入到目标网络
+    const meta = await wallet.importWallet(mnemonic, env);
     set({meta});
     await get().refresh();
   },
   async creditRideTokens(stationCount) {
     if (!stationCount || stationCount <= 0) return;
-    const earned = stationCount * APP_CONFIG.rideTokenPerStop;
-    const next = Math.round((get().rideTokens + earned) * 100) / 100;
-    // 本地账本始终更新（展示 + 持久化）
-    set({rideTokens: next});
-    await storage.set(STORAGE_KEYS.rideTokens, next);
+    if (!APP_CONFIG.rewardOnChain) return;
 
-    // 链上发放：从发奖账户向用户转账 RIDE（需 rewardOnChain + 真实 RPC + 已配置发奖助记词）
     const meta = get().meta;
-    if (meta && APP_CONFIG.rewardOnChain) {
-      try {
-        const base = Math.pow(10, APP_CONFIG.rideTokenExponent);
-        const amountBase = Math.round(earned * base).toString();
-        const hash = await wallet.sendRewardTokens(
-          meta.address,
-          amountBase,
-          APP_CONFIG.rideTokenDenom,
-          meta.env,
-        );
-        console.log('[wallet] RIDE 链上发放成功:', hash, '数量(base):', amountBase, meta.address);
-      } catch (e) {
-        // 链上失败不影响本地账本与行程流程，仅记录告警
-        console.warn('[wallet] RIDE 链上发放失败，仅更新本地账本:', (e as Error).message);
-      }
+    if (!meta?.evmAddress) {
+      set({lastReward: {error: 'no evm address'}});
+      return;
+    }
+    if (!APP_CONFIG.rewardTreasuryKey.trim()) {
+      set({lastReward: {error: 'rewardTreasuryKey empty'}});
+      return;
+    }
+
+    const amount = Math.round(stationCount * APP_CONFIG.rideTokenPerStop * 1e8) / 1e8;
+    try {
+      const hash = await sendEvmNativeReward(meta.evmAddress, amount, meta.env);
+      set({
+        lastReward: {hash, amount},
+        txs: [
+          {
+            hash,
+            type: 'airdrop_claim',
+            amount: String(amount),
+            denom: APP_CONFIG.rideTokenSymbol,
+            time: Date.now(),
+            status: 'success',
+          },
+          ...get().txs,
+        ],
+      });
+      await get().refresh();
+    } catch (e) {
+      set({lastReward: {error: (e as Error).message, amount}});
+      console.warn('[wallet] UPTICK 发放失败:', (e as Error).message);
     }
   },
 }));

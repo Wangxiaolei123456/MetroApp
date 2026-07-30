@@ -31,7 +31,17 @@ export const useTripStore = create<TripState>((set, get) => ({
   ready: false,
   async init() {
     const history = await storage.get<Trip[]>(STORAGE_KEYS.trips);
-    set({history: history ?? [], ready: true});
+    // 清理历史上因重复 finish 产生的重复 id
+    const seen = new Set<string>();
+    const deduped = (history ?? []).filter((t) => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+    if (deduped.length !== (history ?? []).length) {
+      await storage.set(STORAGE_KEYS.trips, deduped);
+    }
+    set({history: deduped, ready: true});
   },
   start(userId, cityId) {
     set({active: createTrip(userId, cityId)});
@@ -46,6 +56,8 @@ export const useTripStore = create<TripState>((set, get) => ({
   async finish() {
     const active = get().active;
     if (!active) return;
+    // 先清空 active，避免发奖 await 期间重复 finish 写入同一行程
+    set({active: null});
     const finalized = finalizeTrip(active);
     // 结算积分（仅 completed 计入有效）
     if (finalized.status === 'completed' && finalized.summary) {
@@ -58,11 +70,12 @@ export const useTripStore = create<TripState>((set, get) => ({
       await usePointsStore.getState().addTransactions(txs);
       await useUserStore.getState().addRide();
       await useUserStore.getState().addStops(finalized.summary.stationCount);
-      // 乘车奖励 Token：每站 rideTokenPerStop（本地账本，演示用）
+      // 乘车奖励：直发 UPTICK 到用户 EVM 钱包
       await useWalletStore.getState().creditRideTokens(finalized.summary.stationCount);
     }
-    const history = [finalized, ...get().history];
-    set({active: null, history});
+    const prev = get().history.filter((t) => t.id !== finalized.id);
+    const history = [finalized, ...prev];
+    set({history});
     await storage.set(STORAGE_KEYS.trips, history);
   },
   clearActive() {

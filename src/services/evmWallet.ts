@@ -8,8 +8,9 @@ import {
 } from '@cosmjs/crypto';
 import {toBech32, toHex} from '@cosmjs/encoding';
 import {keccak_256} from '@noble/hashes/sha3';
+import {JsonRpcProvider, Wallet, parseUnits, type Signer} from 'ethers';
 import {ChainEnv} from '@/types';
-import {UPTICK_CONFIG} from '@/config/app';
+import {APP_CONFIG, UPTICK_CONFIG} from '@/config/app';
 
 /** Uptick / Ethermint 使用 ETH coin type */
 export const EVM_HD_PATH = "m/44'/60'/0'/0/0";
@@ -29,7 +30,6 @@ export async function deriveEvmAccount(mnemonic: string): Promise<EvmAccount> {
   const seed = await Bip39.mnemonicToSeed(new EnglishMnemonic(mnemonic.trim()));
   const {privkey} = Slip10.derivePath(Slip10Curve.Secp256k1, seed, stringToPath(EVM_HD_PATH));
   const {pubkey} = await Secp256k1.makeKeypair(privkey);
-  // cosmjs Secp256k1 可能直接返回未压缩 65 字节；统一再 uncompress 一次
   const uncompressed = pubkey.length === 65 ? pubkey : Secp256k1.uncompressPubkey(pubkey);
   const hash = keccak_256(uncompressed.slice(1));
   const ethBytes = hash.slice(-20);
@@ -62,13 +62,52 @@ export async function queryEvmNativeBalance(
       return {amount: '0', symbol, decimals};
     }
     const wei = BigInt(data.result as string);
-    return {amount: formatUnits(wei, decimals), symbol, decimals};
+    return {amount: formatUnitsAmount(wei, decimals), symbol, decimals};
   } catch {
     return {amount: '0', symbol, decimals};
   }
 }
 
-function formatUnits(value: bigint, decimals: number): string {
+function createTreasuryWallet(secret: string): Wallet {
+  const s = secret.trim();
+  if (s.includes(' ')) {
+    // fromPhrase 返回 HDNodeWallet，用私钥再包一层统一为 Wallet
+    return new Wallet(Wallet.fromPhrase(s).privateKey);
+  }
+  return new Wallet(s.startsWith('0x') ? s : `0x${s}`);
+}
+
+/**
+ * 从发奖账户向用户 EVM 地址转原生 UPTICK（直达钱包，不记账本）
+ */
+export async function sendEvmNativeReward(
+  toEvmAddress: string,
+  amountHuman: number,
+  env: ChainEnv,
+): Promise<string> {
+  const secret = APP_CONFIG.rewardTreasuryKey.trim();
+  if (!secret) {
+    throw new Error('rewardTreasuryKey empty');
+  }
+  if (!toEvmAddress) {
+    throw new Error('missing evm address');
+  }
+  const cfg = UPTICK_CONFIG[env];
+  const provider = new JsonRpcProvider(cfg.evmRpc, cfg.evmChainId);
+  const signer: Signer = createTreasuryWallet(secret).connect(provider);
+  const value = parseUnits(
+    amountHuman.toFixed(cfg.evmDecimals > 8 ? 8 : cfg.evmDecimals),
+    cfg.evmDecimals,
+  );
+  const tx = await signer.sendTransaction({
+    to: toEvmAddress,
+    value,
+  });
+  await tx.wait(1);
+  return tx.hash;
+}
+
+function formatUnitsAmount(value: bigint, decimals: number): string {
   const base = 10n ** BigInt(decimals);
   const whole = value / base;
   const frac = value % base;
