@@ -162,6 +162,14 @@ const zh = {
   'route.startThis': '🚇 按此行程开始',
   'route.sameStation': '起点和终点相同，请更换终点。',
   'route.waitHint': '请等待起点定位完成，并输入或点选终点站。',
+  'route.browseStations': '🚉 按线路浏览车站',
+
+  // 车站线路浏览
+  'stationInfo.title': '车站线路',
+  'stationInfo.subtitle': '选择线路查看站点，快速设为终点',
+  'stationInfo.lineStations': '{name} · 共 {n} 站',
+  'stationInfo.stationsCount': '{n} 站',
+  'stationInfo.setDestination': '设为终点',
 
   // 空投
   'airdrop.title': '空投广场',
@@ -400,6 +408,14 @@ const en: Record<TKey, string> = {
   'route.startThis': '🚇 Start this trip',
   'route.sameStation': 'Origin and destination are the same. Please change the destination.',
   'route.waitHint': 'Wait for origin location, then type or tap a destination station.',
+  'route.browseStations': '🚉 Browse by line',
+
+  // 车站线路浏览
+  'stationInfo.title': 'Lines & Stations',
+  'stationInfo.subtitle': 'Pick a line, then a station, to set as destination',
+  'stationInfo.lineStations': '{name} · {n} stops',
+  'stationInfo.stationsCount': '{n} stops',
+  'stationInfo.setDestination': 'Set as destination',
 
   'airdrop.title': 'Airdrops',
   'airdrop.subtitle': 'F Points-to-token fair airdrops',

@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import MapView, {Marker, Polyline} from 'react-native-maps';
 import {getCityGraph} from '@/data/metroData';
 import {useSettingsStore} from '@/store/useSettingsStore';
@@ -31,6 +31,7 @@ export function RoutePlanScreen() {
   const t = useT();
   const cityId = useSettingsStore((s) => s.cityId);
   const graph = getCityGraph(cityId);
+  const route = useRoute<any>();
   const [loc, setLoc] = useState<GeoPoint | null>(null);
   const [locError, setLocError] = useState<string | null>(null);
   const [fromId, setFromId] = useState<string | null>(null);
@@ -53,6 +54,15 @@ export function RoutePlanScreen() {
   useEffect(() => {
     locate();
   }, [cityId]);
+
+  // 从「车站线路」页选择终点后回传
+  useEffect(() => {
+    const id = route.params?.toStationId;
+    if (id) {
+      setToId(id);
+      setToQuery(route.params?.toStationName ?? graph.stations.find((s) => s.id === id)?.name ?? '');
+    }
+  }, [route.params?.toStationId]);
 
   const fromStation = fromId ? graph.stations.find((s) => s.id === fromId) ?? null : null;
   const toStation = toId ? graph.stations.find((s) => s.id === toId) ?? null : null;
@@ -147,6 +157,13 @@ export function RoutePlanScreen() {
         {/* 终点：地图点选 + 文本输入 */}
         <Card>
           <Text style={styles.label}>{t('route.toLabel')}</Text>
+          <Button
+            title={t('route.browseStations')}
+            variant="soft"
+            size="sm"
+            onPress={() => navigation.navigate('StationInfo')}
+            style={{marginHorizontal: 0, marginTop: spacing.sm, marginBottom: spacing.sm}}
+          />
           <MapView
             style={styles.map}
             initialRegion={{
