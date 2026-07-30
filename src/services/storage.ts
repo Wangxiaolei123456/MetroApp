@@ -53,6 +53,7 @@ export const STORAGE_KEYS = {
   tasks: 'app:user_tasks',
   walletSecret: 'app:wallet_mnemonic', // 加密存储键
   walletMeta: 'app:wallet_meta',
+  rideTokens: 'app:wallet_ride_tokens', // 乘车奖励 Token 本地账本
   settings: 'app:settings',
   invites: 'app:invites',
 };

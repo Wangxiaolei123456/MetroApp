@@ -9,6 +9,7 @@ import {buildTripTransactions} from '@/services/pointsEngine';
 import {storage, STORAGE_KEYS} from '@/services/storage';
 import {usePointsStore} from './usePointsStore';
 import {useUserStore} from './useUserStore';
+import {useWalletStore} from './useWalletStore';
 
 interface TripState {
   active: Trip | null;
@@ -57,6 +58,8 @@ export const useTripStore = create<TripState>((set, get) => ({
       await usePointsStore.getState().addTransactions(txs);
       await useUserStore.getState().addRide();
       await useUserStore.getState().addStops(finalized.summary.stationCount);
+      // 乘车奖励 Token：每站 rideTokenPerStop（本地账本，演示用）
+      await useWalletStore.getState().creditRideTokens(finalized.summary.stationCount);
     }
     const history = [finalized, ...get().history];
     set({active: null, history});

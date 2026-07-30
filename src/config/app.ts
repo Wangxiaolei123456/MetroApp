@@ -23,6 +23,30 @@ export const APP_CONFIG = {
 
   /** 默认链上环境 */
   chainEnv: 'testnet' as ChainEnv,
+
+  /** 乘车奖励 Token：每途经 1 站获得的 Token 数量 */
+  rideTokenPerStop: 0.01,
+  /** 乘车奖励 Token 符号（本地账本，上链前为演示数据） */
+  rideTokenSymbol: 'RIDE',
+  /** 乘车奖励 Token 的 denom（链上 base 单位，如 uride = 10^-6 RIDE） */
+  rideTokenDenom: 'uride',
+  /** 乘车奖励 denom 的小数位（uride -> 1e6） */
+  rideTokenExponent: 6,
+
+  /**
+   * 乘车奖励「链上发放」开关。
+   * 实际转账还需同时满足：WALLET_MOCK=false（见 walletService.ts）+ 真实 RPC（UPTICK_CONFIG）+ rewardTreasuryKey 已配置。
+   * 开启后，每次行程完成会从 rewardTreasuryKey 对应的发奖账户向用户地址转账 RIDE。
+   */
+  rewardOnChain: true,
+  /**
+   * 发奖账户（treasury）密钥：支持两种格式（自动识别）
+   *   - 12/24 词助记词（空格分隔）
+   *   - 64 位 hex 私钥（32 字节，可带 0x 前缀）
+   * 该地址需持有 RIDE(uride) 代币并承担发放。
+   * 演示用，请替换为你自己持有的、已充值 RIDE 的钱包密钥（切勿把真实密钥提交到仓库）。
+   */
+  rewardTreasuryKey: '0x779fdb593268870a70532240e4c97cc3e6c99f0846a366de866558e5c4c54290',
 };
 
 // ===== Google Maps Platform 配置 =====

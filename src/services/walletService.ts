@@ -1,4 +1,4 @@
-import {DirectSecp256k1HdWallet, makeAuthInfoBytes} from '@cosmjs/proto-signing';
+import {DirectSecp256k1HdWallet, DirectSecp256k1Wallet, makeAuthInfoBytes} from '@cosmjs/proto-signing';
 import {stringToPath} from '@cosmjs/crypto';
 import {SigningStargateClient, coin} from '@cosmjs/stargate';
 import {SignDoc, TxBody} from 'cosmjs-types/cosmos/tx/v1beta1/tx';
@@ -12,7 +12,8 @@ import {secureStore, storage, STORAGE_KEYS} from './storage';
 import {t} from '@/i18n';
 
 // 沙箱/无网环境下 Cosmos 查询走 Mock；EVM 余额始终尝试真实 JSON-RPC。
-const WALLET_MOCK = true;
+// 乘车奖励链上发放需要此为 false + 真实 RPC + 已配置发奖密钥（见 APP_CONFIG.rewardTreasuryKey）。
+const WALLET_MOCK = false;
 const ADDRESS_PREFIX = 'uptick';
 
 export class WalletError extends Error {}
@@ -208,5 +209,57 @@ export async function sendTokens(
     [coin(amount, denom)],
     'auto',
   );
+  return res.transactionHash;
+}
+
+/** 64 位 hex（32 字节）私钥 -> Uint8Array，可带 0x 前缀 */
+function hexToBytes(hex: string): Uint8Array {
+  const clean = hex.replace(/^0x/i, '');
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(clean.substr(i * 2, 2), 16);
+  }
+  return out;
+}
+
+/**
+ * 由 rewardTreasuryKey 派生发奖账户签名钱包：
+ *   - 64 位 hex 私钥 -> DirectSecp256k1Wallet.fromKey
+ *   - 否则按 12/24 词助记词 -> DirectSecp256k1HdWallet.fromMnemonic
+ */
+async function deriveTreasury(): Promise<DirectSecp256k1HdWallet | DirectSecp256k1Wallet> {
+  const secret = APP_CONFIG.rewardTreasuryKey.trim();
+  if (/^(0x)?[0-9a-fA-F]{64}$/.test(secret)) {
+    return DirectSecp256k1Wallet.fromKey(hexToBytes(secret), ADDRESS_PREFIX);
+  }
+  return DirectSecp256k1HdWallet.fromMnemonic(secret, {
+    prefix: ADDRESS_PREFIX,
+    hdPaths: [stringToPath(EVM_HD_PATH)],
+  });
+}
+
+/**
+ * 乘车奖励发放：从「发奖账户(treasury)」向用户地址转账 RIDE。
+ * treasury 密钥来自 APP_CONFIG.rewardTreasuryKey（支持私钥或助记词，演示用，需已充值 RIDE）。
+ * 受 WALLET_MOCK 控制：mock 时返回假哈希；false 时走真实 SigningStargateClient 转账。
+ */
+export async function sendRewardTokens(
+  toAddress: string,
+  amount: string,
+  denom: string,
+  env: ChainEnv,
+): Promise<string> {
+  const cfg = envConfig(env);
+  if (WALLET_MOCK) {
+    await new Promise((r) => setTimeout(r, 800));
+    return '0xMOCK_TX_' + Date.now().toString(16);
+  }
+  if (!APP_CONFIG.rewardTreasuryKey) {
+    throw new WalletError(t('svc.wallet.rewardNoTreasury'));
+  }
+  const treasury = await deriveTreasury();
+  const client = await SigningStargateClient.connectWithSigner(cfg.rpc, treasury);
+  const [sender] = await treasury.getAccounts();
+  const res = await client.sendTokens(sender.address, toAddress, [coin(amount, denom)], 'auto');
   return res.transactionHash;
 }

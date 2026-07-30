@@ -95,6 +95,7 @@ const zh = {
   'wallet.address': 'Cosmos 地址',
   'wallet.evmAddress': 'EVM 地址',
   'wallet.tokenBalance': '代币余额',
+  'wallet.rideTokenNote': '乘车奖励：每途经 1 站获得 0.01 RIDE（本地账本，上链前为演示数据）',
   'wallet.chainEvm': 'EVM',
   'wallet.chainCosmos': 'Cosmos',
   'wallet.copy': '复制',
@@ -267,6 +268,7 @@ const zh = {
   // 服务层
   'svc.wallet.invalidMnemonic': '助记词无效',
   'svc.wallet.notFound': '未找到钱包，请先创建或导入',
+  'svc.wallet.rewardNoTreasury': '乘车奖励未配置发奖账户（rewardTreasuryKey 为空），仅记录本地账本',
   'svc.trip.speedAnomaly': '检测到 {n} 个异常高速采样点（疑似虚拟位移）',
   'svc.trip.shortInterval': '站点 {a}→{b} 间隔过短',
   'svc.trip.gpsGap': '定位轨迹存在较长断点，无法验证连续性',
@@ -365,6 +367,7 @@ const en: Record<TKey, string> = {
   'wallet.address': 'Cosmos address',
   'wallet.evmAddress': 'EVM address',
   'wallet.tokenBalance': 'Token balance',
+  'wallet.rideTokenNote': 'Ride reward: +0.01 RIDE per station passed (local ledger, demo data before on-chain)',
   'wallet.chainEvm': 'EVM',
   'wallet.chainCosmos': 'Cosmos',
   'wallet.copy': 'Copy',
@@ -528,6 +531,7 @@ const en: Record<TKey, string> = {
 
   'svc.wallet.invalidMnemonic': 'Invalid mnemonic',
   'svc.wallet.notFound': 'No wallet found. Please create or import one first.',
+  'svc.wallet.rewardNoTreasury': 'Ride reward treasury not configured (rewardTreasuryKey empty); local ledger only',
   'svc.trip.speedAnomaly': '{n} abnormal high-speed samples detected (possible GPS spoofing)',
   'svc.trip.shortInterval': 'Interval between {a}→{b} too short',
   'svc.trip.gpsGap': 'Long gap in location trajectory; continuity cannot be verified',

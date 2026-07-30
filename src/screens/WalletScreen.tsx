@@ -15,6 +15,7 @@ import {ThemeColors, spacing, typography} from '@/theme/theme';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, HeroCard, IconBubble, ScreenHeader} from '@/components/common';
 import {useT} from '@/i18n';
+import {APP_CONFIG} from '@/config/app';
 
 function abbreviate(addr: string, head = 8, tail = 6) {
   if (!addr || addr.length <= head + tail) return addr;
@@ -26,7 +27,7 @@ export function WalletScreen() {
   const t = useT();
   const {colors} = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const {meta, balances, nfts, txs, loading, error, create, import: importWallet, switchEnv, refresh} =
+  const {meta, balances, nfts, txs, rideTokens, loading, error, create, import: importWallet, switchEnv, refresh} =
     useWalletStore();
   const [mnemonic, setMnemonic] = useState('');
   const [showImport, setShowImport] = useState(false);
@@ -196,10 +197,20 @@ export function WalletScreen() {
 
         <Card>
           <Text style={styles.cardTitle}>{t('wallet.tokenBalance')}</Text>
-          {balances.map((b, i) => (
+          <Text style={{color: colors.textFaint, fontSize: typography.caption, marginBottom: spacing.sm}}>
+            {t('wallet.rideTokenNote')}
+          </Text>
+          {balances
+            .concat({
+              denom: APP_CONFIG.rideTokenDenom,
+              amount: rideTokens.toFixed(2),
+              symbol: APP_CONFIG.rideTokenSymbol,
+              chain: 'cosmos' as const,
+            })
+            .map((b, i, arr) => (
             <View
-              key={b.denom + (b.chain ?? '')}
-              style={[styles.balRow, i === balances.length - 1 && {borderBottomWidth: 0}]}>
+              key={b.denom + (b.chain ?? '') + b.symbol}
+              style={[styles.balRow, i === arr.length - 1 && {borderBottomWidth: 0}]}>
               <View style={{flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1}}>
                 <View style={styles.tokenBubble}>
                   <Text style={{fontSize: 13, fontWeight: '800', color: colors.primary}}>
