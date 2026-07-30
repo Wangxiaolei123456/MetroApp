@@ -180,7 +180,10 @@ export interface Badge {
 export type ChainEnv = 'testnet' | 'mainnet';
 
 export interface WalletAccount {
+  /** Cosmos / bech32 地址（uptick…，由 EVM 地址字节编码） */
   address: string;
+  /** EVM 0x 地址（旧钱包可能缺失，刷新时补齐） */
+  evmAddress?: string;
   /** 仅本地加密存储，绝不上传明文 */
   encryptedKeystore?: string;
   env: ChainEnv;
@@ -191,6 +194,8 @@ export interface TokenBalance {
   denom: string;
   amount: string;
   symbol: string;
+  /** 来源：EVM 原生 / Cosmos bank / 其他 */
+  chain?: 'evm' | 'cosmos';
 }
 
 export interface NftAsset {

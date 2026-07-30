@@ -1,16 +1,17 @@
 import {DirectSecp256k1HdWallet, makeAuthInfoBytes} from '@cosmjs/proto-signing';
+import {stringToPath} from '@cosmjs/crypto';
 import {SigningStargateClient, coin} from '@cosmjs/stargate';
 import {SignDoc, TxBody} from 'cosmjs-types/cosmos/tx/v1beta1/tx';
 import {PubKey} from 'cosmjs-types/cosmos/crypto/secp256k1/keys';
 import {Any} from 'cosmjs-types/google/protobuf/any';
 import {bip39Generate, bip39Validate} from './bip39Wrapper';
+import {deriveEvmAccount, EVM_HD_PATH, queryEvmNativeBalance} from './evmWallet';
 import {ChainEnv, NftAsset, TokenBalance, WalletAccount, ChainTx} from '@/types';
 import {UPTICK_CONFIG, APP_CONFIG} from '@/config/app';
 import {secureStore, storage, STORAGE_KEYS} from './storage';
 import {t} from '@/i18n';
 
-// 沙箱/无网环境下默认走 Mock，避免 RPC 调用失败。
-// 接入真实链时将其置为 false 并填入有效 RPC。
+// 沙箱/无网环境下 Cosmos 查询走 Mock；EVM 余额始终尝试真实 JSON-RPC。
 const WALLET_MOCK = true;
 const ADDRESS_PREFIX = 'uptick';
 
@@ -30,9 +31,22 @@ export function validateMnemonic(m: string): boolean {
   return bip39Validate(m.trim());
 }
 
-/** 由助记词推导钱包（Uptick 地址前缀） */
+/** 由助记词推导 CosmJS 钱包（ETH coin type，与 EVM 同源） */
 async function deriveWallet(mnemonic: string): Promise<DirectSecp256k1HdWallet> {
-  return DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {prefix: ADDRESS_PREFIX});
+  return DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
+    prefix: ADDRESS_PREFIX,
+    hdPaths: [stringToPath(EVM_HD_PATH)],
+  });
+}
+
+async function buildMeta(mnemonic: string, env: ChainEnv): Promise<WalletAccount> {
+  const {evmAddress, cosmosAddress} = await deriveEvmAccount(mnemonic);
+  return {
+    address: cosmosAddress,
+    evmAddress,
+    env,
+    createdAt: Date.now(),
+  };
 }
 
 /** D1 创建钱包：生成 + 本地加密存储助记词 */
@@ -40,14 +54,9 @@ export async function createWallet(
   env: ChainEnv = APP_CONFIG.chainEnv,
 ): Promise<WalletAccount> {
   const mnemonic = generateMnemonic();
-  const wallet = await deriveWallet(mnemonic);
-  const [account] = await wallet.getAccounts();
+  await deriveWallet(mnemonic);
   await secureStore.saveSecret(STORAGE_KEYS.walletSecret, mnemonic);
-  const meta: WalletAccount = {
-    address: account.address,
-    env,
-    createdAt: Date.now(),
-  };
+  const meta = await buildMeta(mnemonic, env);
   await storage.set(STORAGE_KEYS.walletMeta, meta);
   return meta;
 }
@@ -58,21 +67,33 @@ export async function importWallet(
   env: ChainEnv = APP_CONFIG.chainEnv,
 ): Promise<WalletAccount> {
   if (!validateMnemonic(mnemonic)) throw new WalletError(t('svc.wallet.invalidMnemonic'));
-  const wallet = await deriveWallet(mnemonic.trim());
-  const [account] = await wallet.getAccounts();
-  await secureStore.saveSecret(STORAGE_KEYS.walletSecret, mnemonic.trim());
-  const meta: WalletAccount = {
-    address: account.address,
-    env,
-    createdAt: Date.now(),
-  };
+  const trimmed = mnemonic.trim();
+  await deriveWallet(trimmed);
+  await secureStore.saveSecret(STORAGE_KEYS.walletSecret, trimmed);
+  const meta = await buildMeta(trimmed, env);
   await storage.set(STORAGE_KEYS.walletMeta, meta);
   return meta;
 }
 
-/** 读取已保存的钱包元数据（不含私钥明文） */
+/** 读取已保存的钱包元数据；旧数据缺 evmAddress 时自动补齐 */
 export async function loadWalletMeta(): Promise<WalletAccount | null> {
-  return storage.get<WalletAccount>(STORAGE_KEYS.walletMeta);
+  const meta = await storage.get<WalletAccount>(STORAGE_KEYS.walletMeta);
+  if (!meta) return null;
+  if (meta.evmAddress) return meta;
+  const mnemonic = await secureStore.getSecret(STORAGE_KEYS.walletSecret);
+  if (!mnemonic) return meta;
+  try {
+    const {evmAddress, cosmosAddress} = await deriveEvmAccount(mnemonic);
+    const next: WalletAccount = {
+      ...meta,
+      evmAddress,
+      address: cosmosAddress,
+    };
+    await storage.set(STORAGE_KEYS.walletMeta, next);
+    return next;
+  } catch {
+    return meta;
+  }
 }
 
 /** 加载完整钱包（用于签名，私钥仅存在于内存） */
@@ -82,29 +103,25 @@ export async function loadSigningWallet(): Promise<DirectSecp256k1HdWallet> {
   return deriveWallet(mnemonic);
 }
 
-/** D3 资产查询（Token / NFT / 交易） */
+/** D3 资产查询：仅展示 EVM 原生余额 */
 export async function queryBalances(
-  address: string,
+  _address: string,
   env: ChainEnv,
+  evmAddress?: string,
 ): Promise<TokenBalance[]> {
-  const cfg = envConfig(env);
-  if (WALLET_MOCK) {
-    return [
-      {denom: cfg.denom, amount: '1250.00', symbol: cfg.coinSymbol},
-      {denom: 'uair', amount: '320.00', symbol: 'AIR'},
-    ];
+  const list: TokenBalance[] = [];
+
+  if (evmAddress) {
+    const evm = await queryEvmNativeBalance(evmAddress, env);
+    list.push({
+      denom: 'evm-native',
+      amount: evm.amount,
+      symbol: evm.symbol,
+      chain: 'evm',
+    });
   }
-  try {
-    const res = await fetch(`${cfg.rest}/cosmos/bank/v1beta1/balances/${address}`);
-    const data = await res.json();
-    return (data.balances ?? []).map((b: {denom: string; amount: string}) => ({
-      denom: b.denom,
-      amount: (Number(b.amount) / 1e6).toFixed(2),
-      symbol: b.denom.replace(/^u/, '').toUpperCase(),
-    }));
-  } catch {
-    return [{denom: cfg.denom, amount: '0.00', symbol: cfg.coinSymbol}];
-  }
+
+  return list;
 }
 
 export async function queryNfts(
@@ -123,7 +140,14 @@ export async function queryNfts(
 export async function queryTxs(_address: string, _env: ChainEnv): Promise<ChainTx[]> {
   if (WALLET_MOCK) {
     return [
-      {hash: '0xabc...', type: 'airdrop_claim', amount: '50', denom: 'AIR', time: Date.now() - 86400000, status: 'success'},
+      {
+        hash: '0xabc...',
+        type: 'airdrop_claim',
+        amount: '50',
+        denom: 'AIR',
+        time: Date.now() - 86400000,
+        status: 'success',
+      },
     ];
   }
   return [];
@@ -131,8 +155,6 @@ export async function queryTxs(_address: string, _env: ChainEnv): Promise<ChainT
 
 /**
  * D4 链上签名授权：构造最小 SignDoc 并签名，返回签名结果。
- * 用于乘车结算/领空投时引导用户完成链上签名。真实环境同理，
- * 可将 payload 作为交易 memo 或 ADR-36 消息进行签名授权。
  */
 export async function signPayload(payload: Record<string, unknown>): Promise<{
   signature: string;
@@ -160,7 +182,7 @@ export async function signPayload(payload: Record<string, unknown>): Promise<{
 
   const {signature} = await wallet.signDirect(account.address, signDoc);
   return {
-    signature: signature.signature, // 本版本 StdSignature.signature 为 base64 字符串
+    signature: signature.signature,
     signed: payload,
   };
 }

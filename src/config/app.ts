@@ -36,29 +36,48 @@ export const GOOGLE_MAPS_CONFIG = {
 };
 
 // ===== Uptick Origin 链上接入配置 =====
-// 真实接入时替换为官方 RPC / Chain ID；此处为占位。
-export const UPTICK_CONFIG: Record<ChainEnv, {
-  chainId: string;
-  rpc: string;
-  rest: string;
-  denom: string;
-  coinSymbol: string;
-  explorer: string;
-}> = {
+// Cosmos RPC 为占位；EVM JSON-RPC 为官方公开节点。
+export const UPTICK_CONFIG: Record<
+  ChainEnv,
+  {
+    chainId: string;
+    rpc: string;
+    rest: string;
+    denom: string;
+    coinSymbol: string;
+    explorer: string;
+    /** EVM JSON-RPC */
+    evmRpc: string;
+    evmChainId: number;
+    evmSymbol: string;
+    evmDecimals: number;
+    evmExplorer: string;
+  }
+> = {
   testnet: {
-    chainId: 'uptick_7776-1',
-    rpc: 'https://rpc.uptick.testnet.example',
-    rest: 'https://rest.uptick.testnet.example',
-    denom: 'aupt',
-    coinSymbol: 'UPT',
-    explorer: 'https://explorer.uptick.testnet.example',
+    chainId: 'origin_1170-3',
+    rpc: 'https://rpc.origin.uptick.network',
+    rest: 'https://api.origin.uptick.network',
+    denom: 'auptick',
+    coinSymbol: 'UPTICK',
+    explorer: 'https://explorer.origin.uptick.network',
+    evmRpc: 'https://json-rpc.origin.uptick.network/',
+    evmChainId: 1170,
+    evmSymbol: 'UPTICK',
+    evmDecimals: 18,
+    evmExplorer: 'https://evm-explorer.origin.uptick.network',
   },
   mainnet: {
-    chainId: 'uptick_1184-1',
-    rpc: 'https://rpc.uptick.example',
-    rest: 'https://rest.uptick.example',
-    denom: 'upt',
-    coinSymbol: 'UPT',
-    explorer: 'https://explorer.uptick.example',
+    chainId: 'uptick_117-1',
+    rpc: 'https://rpc.uptick.network',
+    rest: 'https://rest.uptick.network',
+    denom: 'auptick',
+    coinSymbol: 'UPTICK',
+    explorer: 'https://explorer.uptick.network',
+    evmRpc: 'https://json-rpc.uptick.network/',
+    evmChainId: 117,
+    evmSymbol: 'UPTICK',
+    evmDecimals: 18,
+    evmExplorer: 'https://evm-explorer.uptick.network',
   },
 };

@@ -16,16 +16,33 @@ export const storage = {
 };
 
 // ===== 加密存储（敏感数据：助记词/私钥，D6） =====
-// react-native-encrypted-storage 在 iOS Keychain / Android Keystore 中加密保存
+// react-native-encrypted-storage 在 iOS Keychain / Android Keystore 中加密保存。
+// 若原生模块未链接（如 iOS 未执行 pod install），自动回退到 AsyncStorage，
+// 保证创建/导入钱包流程可正常跑通（仅开发/演示用，生产请正确链接原生模块）。
 export const secureStore = {
   async saveSecret(key: string, value: string): Promise<void> {
-    await EncryptedStorage.setItem(key, value);
+    try {
+      await EncryptedStorage.setItem(key, value);
+    } catch (e) {
+      console.warn('[storage] EncryptedStorage 写入失败，回退 AsyncStorage', e);
+      await AsyncStorage.setItem(key, value);
+    }
   },
   async getSecret(key: string): Promise<string | null> {
-    return EncryptedStorage.getItem(key);
+    try {
+      return await EncryptedStorage.getItem(key);
+    } catch (e) {
+      console.warn('[storage] EncryptedStorage 读取失败，回退 AsyncStorage', e);
+      return AsyncStorage.getItem(key);
+    }
   },
   async removeSecret(key: string): Promise<void> {
-    await EncryptedStorage.removeItem(key);
+    try {
+      await EncryptedStorage.removeItem(key);
+    } catch (e) {
+      console.warn('[storage] EncryptedStorage 删除失败，回退 AsyncStorage', e);
+      await AsyncStorage.removeItem(key);
+    }
   },
 };
 

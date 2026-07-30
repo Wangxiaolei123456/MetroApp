@@ -11,6 +11,7 @@ const config = {
     // 使 cosmjs 回退到纯 JS 的 @noble/hashes 实现，同时提供随机数来源。
     extraNodeModules: {
       crypto: require.resolve('react-native-get-random-values'),
+      buffer: require.resolve('buffer'),
     },
   },
 };

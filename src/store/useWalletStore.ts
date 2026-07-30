@@ -60,10 +60,15 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     }
   },
   async refresh() {
-    const meta = get().meta;
+    let meta = get().meta;
     if (!meta) return;
+    // 补齐旧钱包缺失的 EVM 地址
+    if (!meta.evmAddress) {
+      meta = (await wallet.loadWalletMeta()) ?? meta;
+      set({meta});
+    }
     const [balances, nfts, txs] = await Promise.all([
-      wallet.queryBalances(meta.address, meta.env),
+      wallet.queryBalances(meta.address, meta.env, meta.evmAddress),
       wallet.queryNfts(meta.address, meta.env),
       wallet.queryTxs(meta.address, meta.env),
     ]);
