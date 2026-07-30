@@ -76,6 +76,15 @@ export interface RoutePlan {
   estimatedMinutes: number;
 }
 
+/** 路线优化维度标签 */
+export type RouteTag = 'recommended' | 'fast' | 'short' | 'fewTransfers' | 'alt';
+
+/** 一条候选路线（带优化维度标签），供用户在多条中择优 */
+export interface RouteOption {
+  plan: RoutePlan;
+  tag: RouteTag;
+}
+
 // ===== B. 行程打卡 =====
 
 export type TripStatus = 'active' | 'completed' | 'abnormal';

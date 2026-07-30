@@ -12,11 +12,11 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import MapView, {Marker, Polyline} from 'react-native-maps';
 import {getCityGraph} from '@/data/metroData';
 import {useSettingsStore} from '@/store/useSettingsStore';
-import {planRoute} from '@/services/metroRouting';
+import {planRoutes} from '@/services/metroRouting';
 import {getCurrentLocation} from '@/services/location';
 import {findNearestStation} from '@/services/geofence';
 import {distanceTo, openWalkNavigation} from '@/utils/geo';
-import {GeoPoint, Station} from '@/types';
+import {GeoPoint, RouteTag, Station} from '@/types';
 import {colors, radius, spacing, typography} from '@/theme/theme';
 import {Button, Card, Chip, ScreenHeader} from '@/components/common';
 import {usePlanStore} from '@/store/usePlanStore';
@@ -25,6 +25,15 @@ import {useT} from '@/i18n';
 // 步行引导估算参数
 const WALK_SPEED_MPM = 80; // 步行约 80 米/分钟（4.8 km/h）
 const ROAD_FACTOR = 1.3; // 道路距离 ≈ 直线距离 × 1.3
+
+// 候选路线标签 -> i18n key
+const OPT_LABEL_KEY: Record<RouteTag, Parameters<ReturnType<typeof useT>>[0]> = {
+  recommended: 'route.opt.recommended',
+  fast: 'route.opt.fast',
+  short: 'route.opt.short',
+  fewTransfers: 'route.opt.fewTransfers',
+  alt: 'route.opt.alt',
+};
 
 export function RoutePlanScreen() {
   const navigation = useNavigation<any>();
@@ -38,6 +47,7 @@ export function RoutePlanScreen() {
   const [fromQuery, setFromQuery] = useState('');
   const [toQuery, setToQuery] = useState('');
   const [toId, setToId] = useState<string | null>(null);
+  const [selIdx, setSelIdx] = useState(0);
 
   // 起点 = 当前位置 → 映射到最近站点
   const locate = () => {
@@ -54,6 +64,11 @@ export function RoutePlanScreen() {
   useEffect(() => {
     locate();
   }, [cityId]);
+
+  // 起终点变化后重置选中项
+  useEffect(() => {
+    setSelIdx(0);
+  }, [fromId, toId]);
 
   // 从「车站线路」页选择终点后回传
   useEffect(() => {
@@ -76,10 +91,11 @@ export function RoutePlanScreen() {
     return {road, minutes};
   }, [loc, fromStation]);
 
-  const plan = useMemo(
-    () => (fromId && toId && fromId !== toId ? planRoute(graph, fromId, toId) : null),
+  const routes = useMemo(
+    () => (fromId && toId && fromId !== toId ? planRoutes(graph, fromId, toId) : []),
     [fromId, toId],
   );
+  const plan = routes[selIdx]?.plan ?? null;
 
   // 把规划结果写入全局 store，供主地图「规划后展示线路」
   const setPlanStore = usePlanStore((s) => s.setPlan);
@@ -222,32 +238,54 @@ export function RoutePlanScreen() {
           )}
         </Card>
 
-        {plan ? (
-          <Card>
-            <View style={styles.summaryRow}>
-              <Metric value={String(plan.totalStops)} label={t('route.metricStops')} />
-              <Metric value={String(plan.transferCount)} label={t('route.metricTransfers')} />
-              <Metric value={(plan.totalDistance / 1000).toFixed(1) + 'km'} label={t('route.metricDistance')} />
-              <Metric value={t('route.minutesShort', {n: plan.estimatedMinutes})} label={t('route.metricEta')} />
-            </View>
-            {plan.legs.map((leg, i) => (
-              <View key={i} style={styles.leg}>
-                <View style={styles.legHead}>
-                  <View style={[styles.lineDot, {backgroundColor: leg.lineColor}]} />
-                  <Text style={{fontWeight: '700', color: colors.text}}>{leg.lineName}</Text>
-                  <Chip text={t('common.stops', {n: leg.stopCount})} color={leg.lineColor} />
+        {routes.length > 0 ? (
+          <View>
+            {routes.map((opt, i) => (
+              <Pressable
+                key={i}
+                onPress={() => setSelIdx(i)}
+                style={[styles.optRow, i === selIdx && styles.optRowSel]}>
+                <View style={styles.optMain}>
+                  <View style={styles.optHead}>
+                    <Chip text={t(OPT_LABEL_KEY[opt.tag])} color={i === selIdx ? colors.primary : colors.textSub} />
+                  </View>
+                  <Text style={styles.optMeta}>
+                    {t('route.optMeta', {
+                      min: opt.plan.estimatedMinutes,
+                      dist: (opt.plan.totalDistance / 1000).toFixed(1),
+                      n: opt.plan.transferCount,
+                    })}
+                  </Text>
                 </View>
-                <Text style={{color: colors.textSub, fontSize: typography.sub, marginTop: spacing.xs}}>
-                  {leg.stationIds.map(stationName).join(' → ')}
-                </Text>
-              </View>
+                {i === selIdx && <Text style={styles.optCheck}>✓</Text>}
+              </Pressable>
             ))}
-            <Button
-              title={t('route.startThis')}
-              onPress={() => navigation.navigate('Trip')}
-              style={{marginHorizontal: 0, marginTop: spacing.sm, marginBottom: 0}}
-            />
-          </Card>
+            <Card>
+              <View style={styles.summaryRow}>
+                <Metric value={String(plan!.totalStops)} label={t('route.metricStops')} />
+                <Metric value={String(plan!.transferCount)} label={t('route.metricTransfers')} />
+                <Metric value={(plan!.totalDistance / 1000).toFixed(1) + 'km'} label={t('route.metricDistance')} />
+                <Metric value={t('route.minutesShort', {n: plan!.estimatedMinutes})} label={t('route.metricEta')} />
+              </View>
+              {plan!.legs.map((leg, i) => (
+                <View key={i} style={styles.leg}>
+                  <View style={styles.legHead}>
+                    <View style={[styles.lineDot, {backgroundColor: leg.lineColor}]} />
+                    <Text style={{fontWeight: '700', color: colors.text}}>{leg.lineName}</Text>
+                    <Chip text={t('common.stops', {n: leg.stopCount})} color={leg.lineColor} />
+                  </View>
+                  <Text style={{color: colors.textSub, fontSize: typography.sub, marginTop: spacing.xs}}>
+                    {leg.stationIds.map(stationName).join(' → ')}
+                  </Text>
+                </View>
+              ))}
+              <Button
+                title={t('route.startThis')}
+                onPress={() => navigation.navigate('Trip')}
+                style={{marginHorizontal: 0, marginTop: spacing.sm, marginBottom: 0}}
+              />
+            </Card>
+          </View>
         ) : (
           <Card style={{alignItems: 'center', paddingVertical: spacing.xl}}>
             <Text style={{fontSize: 28, marginBottom: spacing.sm}}>🧭</Text>
@@ -321,4 +359,19 @@ const styles = StyleSheet.create({
   },
   legHead: {flexDirection: 'row', alignItems: 'center', gap: spacing.sm},
   lineDot: {width: 12, height: 12, borderRadius: 6},
+  optRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  optRowSel: {borderColor: colors.primary, backgroundColor: colors.primary + '0A'},
+  optMain: {flex: 1},
+  optHead: {marginBottom: spacing.xs},
+  optMeta: {fontSize: typography.sub, color: colors.textSub},
+  optCheck: {fontSize: 20, fontWeight: '800', color: colors.primary, marginLeft: spacing.md},
 });
