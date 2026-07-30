@@ -1,3 +1,4 @@
-android/
-ios/
+/android
+
+ios/Podfile.lock
 node_modules/
