@@ -24,6 +24,7 @@ const DEFAULT_NOTIF: NotificationSettings = {
   tripAlert: true,
   activityPush: true,
   airdropAlert: true,
+  arrivalAnnounce: true,
 };
 const DEFAULT_PRIV: PrivacySettings = {
   locationEnabled: true,
@@ -48,8 +49,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const scheme = await storage.get<ColorSchemePreference>(STORAGE_KEYS.settings + ':theme');
     const cityId = c && SUPPORTED_CITIES.some((x) => x.id === c) ? c : DEFAULT_CITY_ID;
     set({
-      notification: n ?? DEFAULT_NOTIF,
-      privacy: p ?? DEFAULT_PRIV,
+      notification: {...DEFAULT_NOTIF, ...(n ?? {})},
+      privacy: {...DEFAULT_PRIV, ...(p ?? {})},
       cityId,
       language: l === 'en' || l === 'zh' ? l : 'zh',
       colorScheme: parseScheme(scheme),

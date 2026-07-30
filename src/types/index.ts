@@ -310,6 +310,8 @@ export interface NotificationSettings {
   tripAlert: boolean;
   activityPush: boolean;
   airdropAlert: boolean;
+  /** 进入站点围栏时语音播报到站站名 */
+  arrivalAnnounce: boolean;
 }
 
 export interface PrivacySettings {

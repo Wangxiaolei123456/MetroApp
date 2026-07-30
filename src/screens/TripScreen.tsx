@@ -4,6 +4,7 @@ import {useNavigation} from '@react-navigation/native';
 import {Trip} from '@/types';
 import {getCityGraph} from '@/data/metroData';
 import {watchLocation} from '@/services/location';
+import {announceStationArrival, stopArrivalAnnounce} from '@/services/arrivalAnnounce';
 import {useTripStore} from '@/store/useTripStore';
 import {useUserStore} from '@/store/useUserStore';
 import {computeTripPoints} from '@/services/pointsEngine';
@@ -12,7 +13,10 @@ import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, Empty, ScreenHeader, SectionTitle} from '@/components/common';
 import {CrossfadeNumber, FadeInUp} from '@/components/motion';
 import {useSettingsStore} from '@/store/useSettingsStore';
+import {APP_CONFIG} from '@/config/app';
 import {useT} from '@/i18n';
+
+const SHOW_ANTI_CHEAT = APP_CONFIG.antiCheat.enabled;
 
 export function TripScreen() {
   const navigation = useNavigation<any>();
@@ -35,12 +39,19 @@ export function TripScreen() {
   useEffect(() => {
     if (!active) return;
     const w = watchLocation((p) => {
-      onGps(p);
+      const {entered} = onGps(p);
+      if (entered) {
+        const station = graph.stations.find((s) => s.id === entered);
+        if (station) void announceStationArrival(station);
+      }
       setTick((n) => n + 1);
     });
-    return () => w.remove();
+    return () => {
+      w.remove();
+      stopArrivalAnnounce();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active?.id]);
+  }, [active?.id, cityId]);
 
   const handleStart = () => {
     const uid = profile?.id ?? 'me';
@@ -48,6 +59,7 @@ export function TripScreen() {
   };
 
   const handleFinish = async () => {
+    stopArrivalAnnounce();
     await finish();
     setFinished(useTripStore.getState().history[0] ?? null);
   };
@@ -116,7 +128,7 @@ export function TripScreen() {
               </View>
               <View style={{marginTop: spacing.lg}}>
                 {active.passedStations.map((p, i) => (
-                  <FadeInUp key={p.stationId + p.enteredAt} delay={i * 40}>
+                  <FadeInUp key={`${p.stationId}-${p.enteredAt}-${i}`} delay={i * 40}>
                     <View style={styles.stationRow}>
                       <View style={{alignItems: 'center', width: 14}}>
                         <View
@@ -141,9 +153,11 @@ export function TripScreen() {
                 onPress={handleFinish}
                 style={{marginHorizontal: 0, marginTop: spacing.md}}
               />
-              <Text style={{fontSize: typography.caption, color: colors.textFaint, textAlign: 'center'}}>
-                {t('trip.antiCheat')}
-              </Text>
+              {SHOW_ANTI_CHEAT && (
+                <Text style={{fontSize: typography.caption, color: colors.textFaint, textAlign: 'center'}}>
+                  {t('trip.antiCheat')}
+                </Text>
+              )}
             </Card>
           </FadeInUp>
         )}
@@ -152,8 +166,11 @@ export function TripScreen() {
         {history.length === 0 ? (
           <Empty text={t('trip.emptyHistory')} icon="🎫" />
         ) : (
-          history.map((item, i) => (
-            <FadeInUp key={item.id} delay={Math.min(i, 5) * 50}>
+          history.map((item, i) => {
+            const status =
+              !SHOW_ANTI_CHEAT && item.status === 'abnormal' ? 'completed' : item.status;
+            return (
+            <FadeInUp key={`${item.id}-${i}`} delay={Math.min(i, 5) * 50}>
               <Card style={{marginBottom: spacing.sm}}>
                 <View style={styles.histHead}>
                   <Text style={{fontWeight: '700', color: colors.text}}>
@@ -162,13 +179,13 @@ export function TripScreen() {
                   </Text>
                   <Chip
                     text={
-                      item.status === 'completed'
+                      status === 'completed'
                         ? t('trip.statusCompleted')
-                        : item.status === 'abnormal'
+                        : status === 'abnormal'
                         ? t('trip.statusAbnormal')
                         : t('trip.statusOngoing')
                     }
-                    color={item.status === 'completed' ? colors.success : colors.danger}
+                    color={status === 'completed' ? colors.success : colors.danger}
                   />
                 </View>
                 {item.summary && (
@@ -180,14 +197,15 @@ export function TripScreen() {
                     })}
                   </Text>
                 )}
-                {item.abnormalReasons && item.abnormalReasons.length > 0 && (
+                {SHOW_ANTI_CHEAT && item.abnormalReasons && item.abnormalReasons.length > 0 && (
                   <Text style={{color: colors.danger, fontSize: typography.caption, marginTop: spacing.xs}}>
                     ⚠ {item.abnormalReasons.join('；')}
                   </Text>
                 )}
               </Card>
             </FadeInUp>
-          ))
+            );
+          })
         )}
 
         <Button title={t('trip.viewPoints')} variant="ghost" onPress={() => navigation.navigate('Points')} />
@@ -227,7 +245,7 @@ function FinishedCard({trip}: {trip: Trip}) {
           </Text>
         </View>
       )}
-      {trip.abnormalReasons && trip.abnormalReasons.length > 0 && (
+      {SHOW_ANTI_CHEAT && trip.abnormalReasons && trip.abnormalReasons.length > 0 && (
         <Text style={{color: colors.danger, fontSize: typography.caption, marginTop: spacing.xs}}>
           {t('trip.abnormalNote', {reasons: trip.abnormalReasons.join('；')})}
         </Text>

@@ -1,4 +1,4 @@
-import {ChainEnv} from '@/types';
+import { ChainEnv } from '@/types';
 
 // ===== 应用级配置（集中管理，便于后台下发/替换） =====
 
@@ -13,6 +13,8 @@ export const APP_CONFIG = {
 
   /** 防作弊阈值（B4） */
   antiCheat: {
+    /** 总开关：false 时不标记异常、不影响积分结算 */
+    enabled: true,
     /** 单点瞬时速度上限（米/秒），地铁约 < 33 m/s */
     maxPlausibleSpeed: 40,
     /** 两站最小合理时间间隔（毫秒），过短视为瞬移 */
@@ -21,32 +23,30 @@ export const APP_CONFIG = {
     maxTrackGapMs: 120_000,
   },
 
+  /** 到站语音播报：总开关（false 时忽略用户设置，不播报） */
+  arrivalAnnounce: {
+    enabled: true,
+  },
+
   /** 默认链上环境 */
   chainEnv: 'testnet' as ChainEnv,
 
-  /** 乘车奖励 Token：每途经 1 站获得的 Token 数量 */
+  /** 乘车奖励：每途经 1 站发放到用户 EVM 钱包的 UPTICK 数量 */
   rideTokenPerStop: 0.01,
-  /** 乘车奖励 Token 符号（本地账本，上链前为演示数据） */
-  rideTokenSymbol: 'RIDE',
-  /** 乘车奖励 Token 的 denom（链上 base 单位，如 uride = 10^-6 RIDE） */
-  rideTokenDenom: 'uride',
-  /** 乘车奖励 denom 的小数位（uride -> 1e6） */
-  rideTokenExponent: 6,
+  /** 展示用符号（与 EVM 原生币一致） */
+  rideTokenSymbol: 'UPTICK',
 
   /**
-   * 乘车奖励「链上发放」开关。
-   * 实际转账还需同时满足：WALLET_MOCK=false（见 walletService.ts）+ 真实 RPC（UPTICK_CONFIG）+ rewardTreasuryKey 已配置。
-   * 开启后，每次行程完成会从 rewardTreasuryKey 对应的发奖账户向用户地址转账 RIDE。
+   * 乘车奖励链上发放开关。
+   * true：行程完成后由发奖账户向用户 EVM 地址转原生 UPTICK（不经过本地账本）。
    */
   rewardOnChain: true,
   /**
-   * 发奖账户（treasury）密钥：支持两种格式（自动识别）
-   *   - 12/24 词助记词（空格分隔）
-   *   - 64 位 hex 私钥（32 字节，可带 0x 前缀）
-   * 该地址需持有 RIDE(uride) 代币并承担发放。
-   * 演示用，请替换为你自己持有的、已充值 RIDE 的钱包密钥（切勿把真实密钥提交到仓库）。
+   * 发奖账户（treasury）密钥：支持助记词或 64 位 hex 私钥（可带 0x）。
+   * 该 EVM 地址需持有 UPTICK 并承担 gas。切勿把真实主网密钥提交到仓库。
    */
-  rewardTreasuryKey: '0x779fdb593268870a70532240e4c97cc3e6c99f0846a366de866558e5c4c54290',
+  rewardTreasuryKey:
+    '0x779fdb593268870a70532240e4c97cc3e6c99f0846a366de866558e5c4c54290',
 };
 
 // ===== Google Maps Platform 配置 =====

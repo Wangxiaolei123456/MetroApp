@@ -3,6 +3,7 @@ import {Pressable, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View}
 import {useSettingsStore} from '@/store/useSettingsStore';
 import {SUPPORTED_CITIES} from '@/data/metroData';
 import {SUPPORTED_LANGS, useT} from '@/i18n';
+import {APP_CONFIG} from '@/config/app';
 import {ColorSchemePreference, spacing, typography} from '@/theme/theme';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Card, ScreenHeader} from '@/components/common';
@@ -88,6 +89,13 @@ export function SettingsScreen() {
         <Text style={styles.group}>{t('settings.notifGroup')}</Text>
         <Card style={{paddingVertical: spacing.sm}}>
           <Toggle label={t('settings.tripAlert')} value={notification.tripAlert} onToggle={(v) => setNotification({tripAlert: v})} />
+          {APP_CONFIG.arrivalAnnounce.enabled && (
+            <Toggle
+              label={t('settings.arrivalAnnounce')}
+              value={notification.arrivalAnnounce}
+              onToggle={(v) => setNotification({arrivalAnnounce: v})}
+            />
+          )}
           <Toggle label={t('settings.activityPush')} value={notification.activityPush} onToggle={(v) => setNotification({activityPush: v})} />
           <Toggle label={t('settings.airdropAlert')} value={notification.airdropAlert} onToggle={(v) => setNotification({airdropAlert: v})} />
         </Card>

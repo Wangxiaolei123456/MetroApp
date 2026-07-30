@@ -15,7 +15,7 @@ let tripCounter = 0;
 
 export function createTrip(userId: string, cityId: string): Trip {
   return {
-    id: `trip_${Date.now()}_${tripCounter++}`,
+    id: `trip_${Date.now()}_${tripCounter++}_${Math.random().toString(36).slice(2, 8)}`,
     userId,
     cityId,
     status: 'active',
@@ -130,6 +130,8 @@ export function computeSummary(trip: Trip): TripSummary {
  * 返回异常原因列表（空数组表示正常）。
  */
 export function validateTrip(trip: Trip): string[] {
+  if (!APP_CONFIG.antiCheat.enabled) return [];
+
   const reasons: string[] = [];
   const {maxPlausibleSpeed, minStationIntervalMs, maxTrackGapMs} =
     APP_CONFIG.antiCheat;
