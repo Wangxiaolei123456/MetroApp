@@ -56,10 +56,14 @@ export interface RouteLeg {
   lineId: string;
   lineName: string;
   lineColor: string;
-  /** 该段经过的站点（含起止） */
+  /** 该段经过的站点（含起止）；Google 路线可能为空数组 */
   stationIds: string[];
   stopCount: number;
   distance: number;
+  /** 站点显示名（Google 路线：上车站/下车站名） */
+  stationNames?: string[];
+  /** 该段折线坐标（Google 路线解码后的 polyline，用于地图绘制） */
+  path?: GeoPoint[];
 }
 
 /** 规划出的完整路线 */

@@ -25,6 +25,16 @@ export const APP_CONFIG = {
   chainEnv: 'testnet' as ChainEnv,
 };
 
+// ===== Google Maps Platform 配置 =====
+// Routes API：https://developers.google.com/maps/documentation/routes
+// 请在 Google Cloud Console 启用 "Routes API" 并替换为你的 API Key。
+export const GOOGLE_MAPS_CONFIG = {
+  apiKey: 'AIzaSyCuumkmBiuuX9g9c_HD-HaLgFV-g5NSJ-E',
+  routesEndpoint: 'https://routes.googleapis.com/directions/v2:computeRoutes',
+  /** 请求超时（毫秒） */
+  timeoutMs: 12_000,
+};
+
 // ===== Uptick Origin 链上接入配置 =====
 // 真实接入时替换为官方 RPC / Chain ID；此处为占位。
 export const UPTICK_CONFIG: Record<ChainEnv, {

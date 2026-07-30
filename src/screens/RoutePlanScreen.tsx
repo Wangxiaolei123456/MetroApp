@@ -12,11 +12,12 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import MapView, {Marker, Polyline} from 'react-native-maps';
 import {getCityGraph} from '@/data/metroData';
 import {useSettingsStore} from '@/store/useSettingsStore';
-import {planRoutes} from '@/services/metroRouting';
+import {planRoutesGoogle} from '@/services/googleRouting';
+import {planRoutes as planRoutesLocal} from '@/services/metroRouting';
 import {getCurrentLocation} from '@/services/location';
 import {findNearestStation} from '@/services/geofence';
 import {distanceTo, openWalkNavigation} from '@/utils/geo';
-import {GeoPoint, RouteTag, Station} from '@/types';
+import {GeoPoint, RouteOption, RouteTag, Station} from '@/types';
 import {colors, radius, spacing, typography} from '@/theme/theme';
 import {Button, Card, Chip, ScreenHeader} from '@/components/common';
 import {usePlanStore} from '@/store/usePlanStore';
@@ -39,6 +40,7 @@ export function RoutePlanScreen() {
   const navigation = useNavigation<any>();
   const t = useT();
   const cityId = useSettingsStore((s) => s.cityId);
+  const language = useSettingsStore((s) => s.language);
   const graph = getCityGraph(cityId);
   const route = useRoute<any>();
   const [loc, setLoc] = useState<GeoPoint | null>(null);
@@ -91,10 +93,63 @@ export function RoutePlanScreen() {
     return {road, minutes};
   }, [loc, fromStation]);
 
-  const routes = useMemo(
-    () => (fromId && toId && fromId !== toId ? planRoutes(graph, fromId, toId) : []),
-    [fromId, toId],
-  );
+  // 通过 Google Routes API 异步查询候选路线；失败/无结果时降级本地离线算法
+  const [routes, setRoutes] = useState<RouteOption[]>([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
+  const [routesError, setRoutesError] = useState<string | null>(null);
+  const [usedFallback, setUsedFallback] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
+
+  useEffect(() => {
+    if (!fromStation || !toStation || fromStation.id === toStation.id) {
+      setRoutes([]);
+      setRoutesError(null);
+      setUsedFallback(false);
+      setRoutesLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setRoutesLoading(true);
+    setRoutesError(null);
+    setUsedFallback(false);
+
+    /** Google 不可用时降级到本地离线算法 */
+    const fallbackToLocal = (googleErrMsg: string | null) => {
+      const local = planRoutesLocal(graph, fromStation.id, toStation.id);
+      if (local.length > 0) {
+        setRoutes(local);
+        setUsedFallback(true);
+      } else {
+        setRoutes([]);
+        setRoutesError(
+          googleErrMsg
+            ? t('route.queryError', {msg: googleErrMsg})
+            : t('route.noResult'),
+        );
+      }
+    };
+
+    planRoutesGoogle(fromStation, toStation, language)
+      .then((opts) => {
+        if (cancelled) return;
+        if (opts.length > 0) {
+          setRoutes(opts);
+        } else {
+          fallbackToLocal(null);
+        }
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        fallbackToLocal(err?.message ?? 'unknown');
+      })
+      .finally(() => {
+        if (!cancelled) setRoutesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fromStation?.id, toStation?.id, language, retryTick]);
+
   const plan = routes[selIdx]?.plan ?? null;
 
   // 把规划结果写入全局 store，供主地图「规划后展示线路」
@@ -201,16 +256,22 @@ export function RoutePlanScreen() {
             }}>
             {plan ? (
               <>
-                {plan.legs.map((leg, i) => (
-                  <Polyline
-                    key={'leg' + i}
-                    coordinates={leg.stationIds.map(
-                      (id) => graph.stations.find((s) => s.id === id)!.location,
-                    )}
-                    strokeColor={leg.lineColor}
-                    strokeWidth={5}
-                  />
-                ))}
+                {plan.legs.map((leg, i) => {
+                  const coords =
+                    leg.path ??
+                    leg.stationIds
+                      .map((id) => graph.stations.find((s) => s.id === id)?.location)
+                      .filter((p): p is GeoPoint => p != null);
+                  if (coords.length < 2) return null;
+                  return (
+                    <Polyline
+                      key={'leg' + i}
+                      coordinates={coords}
+                      strokeColor={leg.lineColor}
+                      strokeWidth={5}
+                    />
+                  );
+                })}
                 {fromStation && (
                   <Marker coordinate={fromStation.location} pinColor={colors.primary} title={t('common.origin')} />
                 )}
@@ -238,8 +299,38 @@ export function RoutePlanScreen() {
           )}
         </Card>
 
-        {routes.length > 0 ? (
+        {routesLoading ? (
+          <Card style={{alignItems: 'center', paddingVertical: spacing.xl}}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={{color: colors.textSub, fontSize: typography.sub, marginTop: spacing.sm}}>
+              {t('route.loading')}
+            </Text>
+          </Card>
+        ) : routesError ? (
+          <Card style={{alignItems: 'center', paddingVertical: spacing.xl}}>
+            <Text style={{color: colors.danger, textAlign: 'center', fontSize: typography.sub}}>
+              {routesError}
+            </Text>
+            <Button
+              title={t('route.retry')}
+              variant="soft"
+              size="sm"
+              onPress={() => setRetryTick((v) => v + 1)}
+              style={{marginHorizontal: 0, marginTop: spacing.md}}
+            />
+          </Card>
+        ) : routes.length > 0 ? (
           <View>
+            {usedFallback && (
+              <Text
+                style={{
+                  color: colors.textSub,
+                  fontSize: typography.sub,
+                  marginBottom: spacing.sm,
+                }}>
+                {t('route.localFallback')}
+              </Text>
+            )}
             {routes.map((opt, i) => (
               <Pressable
                 key={i}
@@ -275,7 +366,10 @@ export function RoutePlanScreen() {
                     <Chip text={t('common.stops', {n: leg.stopCount})} color={leg.lineColor} />
                   </View>
                   <Text style={{color: colors.textSub, fontSize: typography.sub, marginTop: spacing.xs}}>
-                    {leg.stationIds.map(stationName).join(' → ')}
+                    {(leg.stationNames && leg.stationNames.length > 0
+                      ? leg.stationNames
+                      : leg.stationIds.map(stationName)
+                    ).join(' → ')}
                   </Text>
                 </View>
               ))}

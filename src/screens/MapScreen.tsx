@@ -46,16 +46,22 @@ export function MapScreen() {
           longitudeDelta: 0.08,
         }}>
         {plan &&
-          plan.legs.map((leg, i) => (
-            <Polyline
-              key={'leg' + i}
-              coordinates={leg.stationIds.map(
-                (id) => graph.stations.find((s) => s.id === id)!.location,
-              )}
-              strokeColor={leg.lineColor}
-              strokeWidth={5}
-            />
-          ))}
+          plan.legs.map((leg, i) => {
+            const coords =
+              leg.path ??
+              leg.stationIds
+                .map((id) => graph.stations.find((s) => s.id === id)?.location)
+                .filter((p): p is GeoPoint => p != null);
+            if (coords.length < 2) return null;
+            return (
+              <Polyline
+                key={'leg' + i}
+                coordinates={coords}
+                strokeColor={leg.lineColor}
+                strokeWidth={5}
+              />
+            );
+          })}
         {plan && (
           <Marker
             coordinate={graph.stations.find((s) => s.id === plan.fromStationId)!.location}
