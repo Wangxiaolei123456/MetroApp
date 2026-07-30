@@ -1,3 +1,4 @@
+import {Linking, Platform} from 'react-native';
 import {GeoPoint} from '@/types';
 
 const EARTH_RADIUS = 6371000; // 米
@@ -43,4 +44,20 @@ export function estimateSpeed(
   const dt = (curr.at - prev.at) / 1000; // 秒
   if (dt <= 0) return 0;
   return haversine(prev.location, curr.location) / dt;
+}
+
+/**
+ * 唤起外部地图 App 进行步行导航
+ * iOS 使用 Apple Maps，Android 使用 Google Maps 步行导航
+ */
+export async function openWalkNavigation(from: GeoPoint, to: GeoPoint): Promise<void> {
+  const url =
+    Platform.OS === 'ios'
+      ? `https://maps.apple.com/?saddr=${from.latitude},${from.longitude}&daddr=${to.latitude},${to.longitude}&dirflg=w`
+      : `https://www.google.com/maps/dir/?api=1&travelmode=walking&origin=${from.latitude},${from.longitude}&destination=${to.latitude},${to.longitude}`;
+  try {
+    await Linking.openURL(url);
+  } catch {
+    // 忽略：用户取消或无可用地图 App
+  }
 }

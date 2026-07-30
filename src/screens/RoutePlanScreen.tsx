@@ -15,7 +15,7 @@ import {useSettingsStore} from '@/store/useSettingsStore';
 import {planRoute} from '@/services/metroRouting';
 import {getCurrentLocation} from '@/services/location';
 import {findNearestStation} from '@/services/geofence';
-import {distanceTo} from '@/utils/geo';
+import {distanceTo, openWalkNavigation} from '@/utils/geo';
 import {GeoPoint, Station} from '@/types';
 import {colors, radius, spacing, typography} from '@/theme/theme';
 import {Button, Card, Chip, ScreenHeader} from '@/components/common';
@@ -126,6 +126,13 @@ export function RoutePlanScreen() {
                   <Text style={styles.walkText}>
                     {t('route.walkText', {name: fromStation.name, d: walk.road, min: walk.minutes})}
                   </Text>
+                  <Button
+                    title={t('route.openNav')}
+                    variant="soft"
+                    size="sm"
+                    onPress={() => openWalkNavigation(loc!, fromStation.location)}
+                    style={{marginHorizontal: 0, marginTop: spacing.sm}}
+                  />
                 </View>
               )}
             </View>
