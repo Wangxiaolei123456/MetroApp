@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
-import {colors, spacing, typography} from '@/theme/theme';
+import {ThemeColors, spacing, typography} from '@/theme/theme';
+import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, ScreenHeader} from '@/components/common';
 import {TKey, useT} from '@/i18n';
 
@@ -14,6 +15,8 @@ const FAQ: {q: TKey; a: TKey}[] = [
 
 export function HelpScreen() {
   const t = useT();
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [feedback, setFeedback] = useState('');
   const [sent, setSent] = useState(false);
 
@@ -67,29 +70,31 @@ export function HelpScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  faq: {paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border},
-  qBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    backgroundColor: colors.primarySoft,
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '800',
-    textAlign: 'center',
-    lineHeight: 20,
-    overflow: 'hidden',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: spacing.md,
-    color: colors.text,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    marginBottom: spacing.md,
-    backgroundColor: colors.background,
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    faq: {paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border},
+    qBadge: {
+      width: 20,
+      height: 20,
+      borderRadius: 6,
+      backgroundColor: colors.primarySoft,
+      color: colors.primary,
+      fontSize: 12,
+      fontWeight: '800',
+      textAlign: 'center',
+      lineHeight: 20,
+      overflow: 'hidden',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: spacing.md,
+      color: colors.text,
+      minHeight: 80,
+      textAlignVertical: 'top',
+      marginBottom: spacing.md,
+      backgroundColor: colors.background,
+    },
+  });
+}

@@ -2,19 +2,25 @@ import React from 'react';
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useTaskStore} from '@/store/useTaskStore';
 import {TASK_DEFS} from '@/data/mockData';
-import {colors, spacing, typography} from '@/theme/theme';
+import {ThemeColors, spacing, typography} from '@/theme/theme';
+import {useTheme} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, ProgressBar, ScreenHeader} from '@/components/common';
 import {TKey, useT} from '@/i18n';
 
 const TYPE_KEY: Record<string, TKey> = {daily: 'tasks.type.daily', weekly: 'tasks.type.weekly', newbie: 'tasks.type.newbie'};
-const TYPE_COLOR: Record<string, string> = {daily: colors.primary, weekly: colors.accent, newbie: colors.success};
 const TYPE_ICON: Record<string, string> = {daily: '📅', weekly: '🗓', newbie: '🌱'};
+
+function getTypeColor(colors: ThemeColors): Record<string, string> {
+  return {daily: colors.primary, weekly: colors.accent, newbie: colors.success};
+}
 
 export function TasksScreen() {
   const t = useT();
+  const {colors} = useTheme();
   const tasks = useTaskStore((s) => s.tasks);
   const tickMetric = useTaskStore((s) => s.tickMetric);
   const claim = useTaskStore((s) => s.claim);
+  const typeColor = getTypeColor(colors);
 
   return (
     <View style={{flex: 1, backgroundColor: colors.background}}>
@@ -25,7 +31,7 @@ export function TasksScreen() {
           const progress = ut?.progress ?? 0;
           const pct = Math.min(100, Math.round((progress / def.target) * 100));
           const status = ut?.status ?? 'in_progress';
-          const typeColor = TYPE_COLOR[def.type] ?? colors.primary;
+          const chipColor = typeColor[def.type] ?? colors.primary;
           return (
             <Card key={def.id}>
               <View style={styles.head}>
@@ -35,7 +41,7 @@ export function TasksScreen() {
                     {def.title}
                   </Text>
                 </View>
-                <Chip text={t(TYPE_KEY[def.type])} color={typeColor} />
+                <Chip text={t(TYPE_KEY[def.type])} color={chipColor} />
               </View>
               <Text style={{color: colors.textSub, fontSize: typography.sub, marginTop: spacing.xs, lineHeight: 18}}>
                 {def.description}
@@ -43,7 +49,7 @@ export function TasksScreen() {
                 {def.rewardToken ? t('tasks.rewardToken', {t: def.rewardToken}) : ''}
               </Text>
               <View style={{flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md}}>
-                <ProgressBar pct={pct} color={typeColor} style={{flex: 1}} />
+                <ProgressBar pct={pct} color={chipColor} style={{flex: 1}} />
                 <Text style={{fontSize: typography.caption, color: colors.textFaint, fontWeight: '600'}}>
                   {progress}/{def.target}
                 </Text>

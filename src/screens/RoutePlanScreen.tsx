@@ -18,8 +18,10 @@ import {getCurrentLocation} from '@/services/location';
 import {findNearestStation} from '@/services/geofence';
 import {distanceTo, openWalkNavigation} from '@/utils/geo';
 import {GeoPoint, RouteOption, RouteTag, Station} from '@/types';
-import {colors, radius, spacing, typography} from '@/theme/theme';
+import {ThemeColors, radius, spacing, typography} from '@/theme/theme';
+import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, ScreenHeader} from '@/components/common';
+import {CrossfadeNumber} from '@/components/motion';
 import {usePlanStore} from '@/store/usePlanStore';
 import {useT} from '@/i18n';
 
@@ -39,6 +41,8 @@ const OPT_LABEL_KEY: Record<RouteTag, Parameters<ReturnType<typeof useT>>[0]> = 
 export function RoutePlanScreen() {
   const navigation = useNavigation<any>();
   const t = useT();
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const cityId = useSettingsStore((s) => s.cityId);
   const language = useSettingsStore((s) => s.language);
   const graph = getCityGraph(cityId);
@@ -327,6 +331,7 @@ export function RoutePlanScreen() {
                   color: colors.textSub,
                   fontSize: typography.sub,
                   marginBottom: spacing.sm,
+                  marginHorizontal: spacing.lg,
                 }}>
                 {t('route.localFallback')}
               </Text>
@@ -336,9 +341,29 @@ export function RoutePlanScreen() {
                 key={i}
                 onPress={() => setSelIdx(i)}
                 style={[styles.optRow, i === selIdx && styles.optRowSel]}>
+                <View style={styles.optEta}>
+                  <CrossfadeNumber
+                    value={opt.plan.estimatedMinutes}
+                    style={styles.optEtaNum}
+                    height={32}
+                  />
+                  <Text style={styles.optEtaUnit}>min</Text>
+                </View>
                 <View style={styles.optMain}>
                   <View style={styles.optHead}>
-                    <Chip text={t(OPT_LABEL_KEY[opt.tag])} color={i === selIdx ? colors.primary : colors.textSub} />
+                    <Chip text={t(OPT_LABEL_KEY[opt.tag])} color={i === selIdx ? colors.primaryBright : colors.textSub} />
+                  </View>
+                  <View style={styles.legStrip}>
+                    {opt.plan.legs.map((leg, li) => (
+                      <View key={li} style={styles.legStripItem}>
+                        {li > 0 && <Text style={styles.legArrow}>›</Text>}
+                        <View style={[styles.legChip, {backgroundColor: leg.lineColor}]}>
+                          <Text style={styles.legChipText} numberOfLines={1}>
+                            {leg.lineName.replace(/号线| Line/gi, '').trim().slice(0, 4)}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
                   </View>
                   <Text style={styles.optMeta}>
                     {t('route.optMeta', {
@@ -375,6 +400,7 @@ export function RoutePlanScreen() {
               ))}
               <Button
                 title={t('route.startThis')}
+                variant="go"
                 onPress={() => navigation.navigate('Trip')}
                 style={{marginHorizontal: 0, marginTop: spacing.sm, marginBottom: 0}}
               />
@@ -394,15 +420,28 @@ export function RoutePlanScreen() {
 }
 
 function Metric({value, label}: {value: string; label: string}) {
+  const {colors} = useTheme();
   return (
     <View style={{alignItems: 'center', flex: 1}}>
-      <Text style={{fontSize: 20, fontWeight: '800', color: colors.primary}}>{value}</Text>
+      <CrossfadeNumber
+        value={value}
+        height={28}
+        style={{
+          fontSize: 20,
+          fontWeight: '800',
+          color: colors.primaryBright,
+          fontVariant: ['tabular-nums'],
+          textAlign: 'center',
+        }}
+      />
       <Text style={{fontSize: typography.caption, color: colors.textSub}}>{label}</Text>
     </View>
   );
 }
 
 function PressableRow({text, onPress}: {text: string; onPress: () => void}) {
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable onPress={onPress} style={styles.rowItem}>
       <Text style={{color: colors.text, fontSize: typography.body}}>{text}</Text>
@@ -410,62 +449,106 @@ function PressableRow({text, onPress}: {text: string; onPress: () => void}) {
   );
 }
 
-const styles = StyleSheet.create({
-  label: {fontSize: typography.sub, color: colors.textSub, marginBottom: spacing.xs},
-  primary: {fontSize: typography.h2, fontWeight: '700', color: colors.text},
-  sub: {fontSize: typography.sub, color: colors.textSub, marginTop: spacing.xs},
-  err: {fontSize: typography.body, color: colors.danger},
-  row: {flexDirection: 'row', alignItems: 'center', gap: spacing.sm},
-  walkBox: {
-    marginTop: spacing.sm,
-    backgroundColor: colors.primary + '10',
-    borderRadius: radius.md,
-    padding: spacing.sm,
-  },
-  walkText: {fontSize: typography.sub, color: colors.primary, fontWeight: '600' },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: typography.body,
-    color: colors.text,
-    backgroundColor: colors.background,
-    marginTop: spacing.sm,
-  },
-  map: {
-    height: 220,
-    width: '100%',
-    borderRadius: radius.lg,
-    marginTop: spacing.xs,
-  },
-  rowItem: {
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  summaryRow: {flexDirection: 'row', marginBottom: spacing.md},
-  leg: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingVertical: spacing.md,
-  },
-  legHead: {flexDirection: 'row', alignItems: 'center', gap: spacing.sm},
-  lineDot: {width: 12, height: 12, borderRadius: 6},
-  optRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  optRowSel: {borderColor: colors.primary, backgroundColor: colors.primary + '0A'},
-  optMain: {flex: 1},
-  optHead: {marginBottom: spacing.xs},
-  optMeta: {fontSize: typography.sub, color: colors.textSub},
-  optCheck: {fontSize: 20, fontWeight: '800', color: colors.primary, marginLeft: spacing.md},
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    label: {fontSize: typography.sub, color: colors.textSub, marginBottom: spacing.xs},
+    primary: {fontSize: typography.h2, fontWeight: '700', color: colors.text},
+    sub: {fontSize: typography.sub, color: colors.textSub, marginTop: spacing.xs},
+    err: {fontSize: typography.body, color: colors.danger},
+    row: {flexDirection: 'row', alignItems: 'center', gap: spacing.sm},
+    walkBox: {
+      marginTop: spacing.sm,
+      backgroundColor: colors.primary + '10',
+      borderRadius: radius.md,
+      padding: spacing.sm,
+    },
+    walkText: {fontSize: typography.sub, color: colors.primary, fontWeight: '600' },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      fontSize: typography.body,
+      color: colors.text,
+      backgroundColor: colors.background,
+      marginTop: spacing.sm,
+    },
+    map: {
+      height: 220,
+      width: '100%',
+      borderRadius: radius.lg,
+      marginTop: spacing.xs,
+    },
+    rowItem: {
+      paddingVertical: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    summaryRow: {flexDirection: 'row', marginBottom: spacing.md},
+    leg: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingVertical: spacing.md,
+    },
+    legHead: {flexDirection: 'row', alignItems: 'center', gap: spacing.sm},
+    lineDot: {width: 12, height: 12, borderRadius: 6},
+    optRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+    },
+    optRowSel: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySoft,
+    },
+    optEta: {
+      width: 56,
+      alignItems: 'center',
+      marginRight: spacing.md,
+    },
+    optEtaNum: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: -0.5,
+      fontVariant: ['tabular-nums'],
+    },
+    optEtaUnit: {
+      fontSize: typography.caption,
+      color: colors.textSub,
+      fontWeight: '600',
+      marginTop: -2,
+    },
+    legStrip: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    legStripItem: {flexDirection: 'row', alignItems: 'center'},
+    legArrow: {color: colors.textFaint, marginHorizontal: 3, fontSize: 12},
+    legChip: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      maxWidth: 56,
+    },
+    legChipText: {
+      color: colors.white,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+    },
+    optMain: {flex: 1},
+    optHead: {marginBottom: spacing.xs},
+    optMeta: {fontSize: typography.sub, color: colors.textSub, fontVariant: ['tabular-nums']},
+    optCheck: {fontSize: 20, fontWeight: '800', color: colors.go, marginLeft: spacing.sm},
+  });
+}

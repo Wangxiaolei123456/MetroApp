@@ -5,8 +5,10 @@ import {useUserStore} from '@/store/useUserStore';
 import {currentLevel, nextLevel} from '@/services/pointsEngine';
 import {BADGES} from '@/data/mockData';
 import {PointsSource} from '@/types';
-import {colors, spacing, typography} from '@/theme/theme';
+import {ThemeColors, spacing, typography} from '@/theme/theme';
+import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Card, Chip, Empty, HeroCard, ProgressBar, ScreenHeader, SectionTitle} from '@/components/common';
+import {CrossfadeNumber, FadeInUp} from '@/components/motion';
 import {TKey, useT} from '@/i18n';
 
 const SOURCE_KEY: Record<PointsSource, TKey> = {
@@ -22,6 +24,8 @@ const SOURCE_KEY: Record<PointsSource, TKey> = {
 
 export function PointsScreen() {
   const t = useT();
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const stats = usePointsStore(selectPointsStats);
   const txs = usePointsStore((s) => s.txs);
   const profile = useUserStore((s) => s.profile);
@@ -45,20 +49,38 @@ export function PointsScreen() {
     <View style={{flex: 1, backgroundColor: colors.background}}>
       <ScreenHeader title={t('points.title')} subtitle={t('points.subtitle')} />
       <ScrollView>
-        <HeroCard>
-          <Text style={{color: 'rgba(255,255,255,0.8)', fontSize: typography.sub}}>{t('points.balance')}</Text>
-          <Text style={{color: colors.white, fontSize: 44, fontWeight: '800', letterSpacing: 0.5, marginVertical: 2}}>
-            {stats.balance}
-          </Text>
-          <View style={styles.row}>
-            <View style={styles.pill}>
-              <Text style={styles.pillText}>{t('points.totalEarned', {n: stats.totalEarned})}</Text>
+        <FadeInUp>
+          <HeroCard>
+            <Text
+              style={{
+                color: 'rgba(255,255,255,0.75)',
+                fontSize: typography.sub,
+                letterSpacing: 0.4,
+                textTransform: 'uppercase',
+              }}>
+              {t('points.balance')}
+            </Text>
+            <CrossfadeNumber
+              value={stats.balance}
+              height={52}
+              style={{
+                color: colors.textOnBrand,
+                fontSize: 44,
+                fontWeight: '800',
+                letterSpacing: -0.5,
+                fontVariant: ['tabular-nums'],
+              }}
+            />
+            <View style={styles.row}>
+              <View style={styles.pill}>
+                <Text style={styles.pillText}>{t('points.totalEarned', {n: stats.totalEarned})}</Text>
+              </View>
+              <View style={styles.pill}>
+                <Text style={styles.pillText}>{t('points.locked', {n: stats.lockedBalance})}</Text>
+              </View>
             </View>
-            <View style={styles.pill}>
-              <Text style={styles.pillText}>{t('points.locked', {n: stats.lockedBalance})}</Text>
-            </View>
-          </View>
-        </HeroCard>
+          </HeroCard>
+        </FadeInUp>
 
         <Card>
           <View style={styles.levelHead}>
@@ -86,7 +108,11 @@ export function PointsScreen() {
                 </View>
                 <Text
                   numberOfLines={1}
-                  style={{fontSize: typography.caption, marginTop: 4, color: b.unlocked ? colors.text : colors.textFaint}}>
+                  style={{
+                    fontSize: typography.caption,
+                    marginTop: 4,
+                    color: b.unlocked ? colors.text : colors.textFaint,
+                  }}>
                   {b.name}
                 </Text>
               </View>
@@ -105,7 +131,9 @@ export function PointsScreen() {
               <Card key={tx.id} style={{padding: spacing.md, marginBottom: spacing.sm}}>
                 <View style={styles.txRow}>
                   <View style={{flex: 1, marginRight: spacing.md}}>
-                    <Text style={{color: colors.text, fontWeight: '600'}}>{tx.note ?? t(SOURCE_KEY[tx.source])}</Text>
+                    <Text style={{color: colors.text, fontWeight: '600'}}>
+                      {tx.note ?? t(SOURCE_KEY[tx.source])}
+                    </Text>
                     <Text style={{color: colors.textFaint, fontSize: typography.caption, marginTop: 2}}>
                       {new Date(tx.createdAt).toLocaleString()}
                       {tx.locked ? t('points.lockedTag') : ''}
@@ -129,25 +157,29 @@ export function PointsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm},
-  pill: {
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderRadius: 999,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-  },
-  pillText: {color: colors.white, fontSize: typography.caption, fontWeight: '600'},
-  levelHead: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
-  badgeRow: {flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md},
-  badge: {alignItems: 'center', width: 64},
-  badgeBubble: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  txRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    row: {flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm},
+    pill: {
+      backgroundColor: 'rgba(255,255,255,0.16)',
+      borderRadius: 999,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 5,
+    },
+    pillText: {color: colors.white, fontSize: typography.caption, fontWeight: '600'},
+    levelHead: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+    badgeRow: {flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md},
+    badge: {alignItems: 'center', width: 64},
+    badgeBubble: {
+      width: 52,
+      height: 52,
+      borderRadius: 18,
+      backgroundColor: colors.primarySoft,
+      borderWidth: 1,
+      borderColor: colors.primary + '44',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    txRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+  });
+}

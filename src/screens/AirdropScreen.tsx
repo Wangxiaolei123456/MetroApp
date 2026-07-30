@@ -5,13 +5,16 @@ import {usePointsStore, selectPointsStats} from '@/store/usePointsStore';
 import {useUserStore} from '@/store/useUserStore';
 import {useWalletStore} from '@/store/useWalletStore';
 import {checkAll, claimAirdrop} from '@/services/airdropService';
-import {colors, spacing, typography} from '@/theme/theme';
+import {ThemeColors, spacing, typography} from '@/theme/theme';
+import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, ProgressBar, ScreenHeader} from '@/components/common';
 import {useT} from '@/i18n';
 
 export function AirdropScreen() {
   const navigation = useNavigation<any>();
   const t = useT();
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const stats = usePointsStore(selectPointsStats);
   const profile = useUserStore((s) => s.profile);
   const walletMeta = useWalletStore((s) => s.meta);
@@ -102,12 +105,14 @@ export function AirdropScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  head: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm},
-  reasonBox: {
-    backgroundColor: colors.dangerSoft,
-    borderRadius: 10,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    head: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm},
+    reasonBox: {
+      backgroundColor: colors.dangerSoft,
+      borderRadius: 10,
+      padding: spacing.sm,
+      marginTop: spacing.sm,
+    },
+  });
+}

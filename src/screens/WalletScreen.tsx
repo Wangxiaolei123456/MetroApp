@@ -3,13 +3,16 @@ import {Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-na
 import {useNavigation} from '@react-navigation/native';
 import {ChainEnv} from '@/types';
 import {useWalletStore} from '@/store/useWalletStore';
-import {colors, spacing, typography} from '@/theme/theme';
+import {ThemeColors, spacing, typography} from '@/theme/theme';
+import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, HeroCard, IconBubble, ScreenHeader} from '@/components/common';
 import {useT} from '@/i18n';
 
 export function WalletScreen() {
   const navigation = useNavigation<any>();
   const t = useT();
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const {meta, balances, nfts, txs, loading, error, create, import: importWallet, switchEnv, refresh} =
     useWalletStore();
   const [mnemonic, setMnemonic] = useState('');
@@ -158,6 +161,8 @@ export function WalletScreen() {
 }
 
 function PressableChip({text, active, onPress}: {text: string; active: boolean; onPress: () => void}) {
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -175,46 +180,50 @@ function PressableChip({text, active, onPress}: {text: string; active: boolean; 
   );
 }
 
-const styles = StyleSheet.create({
-  headRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
-  cardTitle: {fontWeight: '700', color: colors.text, marginBottom: spacing.sm, fontSize: typography.h2},
-  envPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderRadius: 999,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-  },
-  envDot: {width: 8, height: 8, borderRadius: 4},
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: spacing.md,
-    color: colors.text,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    marginBottom: spacing.sm,
-    backgroundColor: colors.background,
-  },
-  switchRow: {flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg},
-  chip: {paddingHorizontal: spacing.lg, paddingVertical: 7, borderRadius: 999},
-  balRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  tokenBubble: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    headRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+    cardTitle: {fontWeight: '700', color: colors.text, marginBottom: spacing.sm, fontSize: typography.h2},
+    envPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(255,255,255,0.16)',
+      borderRadius: 999,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 5,
+    },
+    envDot: {width: 8, height: 8, borderRadius: 4},
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: spacing.md,
+      color: colors.text,
+      minHeight: 80,
+      textAlignVertical: 'top',
+      marginBottom: spacing.sm,
+      backgroundColor: colors.background,
+    },
+    switchRow: {flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg},
+    chip: {paddingHorizontal: spacing.lg, paddingVertical: 7, borderRadius: 999},
+    balRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    tokenBubble: {
+      width: 30,
+      height: 30,
+      borderRadius: 10,
+      backgroundColor: colors.primarySoft,
+      borderWidth: 1,
+      borderColor: colors.primary + '44',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });
+}

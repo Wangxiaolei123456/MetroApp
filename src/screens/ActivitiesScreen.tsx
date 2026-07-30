@@ -5,7 +5,8 @@ import {getCityGraph} from '@/data/metroData';
 import {useActivityStore} from '@/store/useActivityStore';
 import {getCurrentLocation} from '@/services/location';
 import {distanceTo} from '@/utils/geo';
-import {colors, spacing, typography} from '@/theme/theme';
+import {spacing, typography} from '@/theme/theme';
+import {useTheme} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, ScreenHeader} from '@/components/common';
 import {useSettingsStore} from '@/store/useSettingsStore';
 import {useT} from '@/i18n';
@@ -13,6 +14,7 @@ import {useT} from '@/i18n';
 export function ActivitiesScreen() {
   const {activities, enrolledIds, checkedInIds, enroll, checkin} = useActivityStore();
   const t = useT();
+  const {colors} = useTheme();
   const cityId = useSettingsStore((s) => s.cityId);
   const graph = getCityGraph(cityId);
   const [msg, setMsg] = useState<string | null>(null);

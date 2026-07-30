@@ -1,8 +1,8 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {Text} from 'react-native';
-import {colors, shadows} from '@/theme/theme';
+import {Text, View} from 'react-native';
+import {useTheme} from '@/theme/ThemeProvider';
 import {useT} from '@/i18n';
 
 import {MapScreen} from '@/screens/MapScreen';
@@ -48,28 +48,30 @@ function MeStackScreen() {
 }
 
 const TABS = [
-  {name: 'MapTab', component: MapStackScreen, labelKey: 'nav.map' as const, icon: '🗺'},
-  {name: 'Trip', component: TripScreen, labelKey: 'nav.trip' as const, icon: '🚇'},
-  {name: 'Points', component: PointsScreen, labelKey: 'nav.points' as const, icon: '🏅'},
-  {name: 'Wallet', component: WalletScreen, labelKey: 'nav.wallet' as const, icon: '👛'},
-  {name: 'MeTab', component: MeStackScreen, labelKey: 'nav.me' as const, icon: '👤'},
+  {name: 'MapTab', component: MapStackScreen, labelKey: 'nav.map' as const, icon: '◎'},
+  {name: 'Trip', component: TripScreen, labelKey: 'nav.trip' as const, icon: '▶'},
+  {name: 'Points', component: PointsScreen, labelKey: 'nav.points' as const, icon: '◆'},
+  {name: 'Wallet', component: WalletScreen, labelKey: 'nav.wallet' as const, icon: '◇'},
+  {name: 'MeTab', component: MeStackScreen, labelKey: 'nav.me' as const, icon: '○'},
 ];
 
 export function RootNavigator() {
   const tr = useT();
+  const {colors} = useTheme();
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.primaryBright,
         tabBarInactiveTintColor: colors.textFaint,
         tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopWidth: 0,
-          ...shadows.float,
+          backgroundColor: colors.card,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingTop: 4,
         },
-        tabBarLabelStyle: {fontSize: 11, fontWeight: '600'},
-        tabBarItemStyle: {paddingTop: 4},
+        tabBarLabelStyle: {fontSize: 10, fontWeight: '600', letterSpacing: 0.2},
+        tabBarItemStyle: {paddingTop: 2},
       }}>
       {TABS.map((t) => (
         <Tab.Screen
@@ -79,9 +81,26 @@ export function RootNavigator() {
           options={{
             title: tr(t.labelKey),
             tabBarIcon: ({color, focused}) => (
-              <Text style={{fontSize: focused ? 21 : 19, color, opacity: focused ? 1 : 0.75}}>
-                {t.icon}
-              </Text>
+              <View
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: focused ? colors.primarySoft : 'transparent',
+                  borderWidth: focused ? 1 : 0,
+                  borderColor: focused ? colors.primary + '44' : 'transparent',
+                }}>
+                <Text
+                  style={{
+                    fontSize: focused ? 14 : 13,
+                    color,
+                    fontWeight: focused ? '800' : '500',
+                  }}>
+                  {t.icon}
+                </Text>
+              </View>
             ),
           }}
         />

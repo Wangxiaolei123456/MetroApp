@@ -3,7 +3,8 @@ import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {SAMPLE_RANK_POINTS, SAMPLE_RANK_STOPS} from '@/data/mockData';
 import {useUserStore} from '@/store/useUserStore';
 import {usePointsStore, selectPointsStats} from '@/store/usePointsStore';
-import {colors, spacing, typography} from '@/theme/theme';
+import {ThemeColors, spacing, typography} from '@/theme/theme';
+import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Card, Chip, ScreenHeader, SectionTitle} from '@/components/common';
 import {useT} from '@/i18n';
 
@@ -11,6 +12,7 @@ const MEDALS = ['🥇', '🥈', '🥉'];
 
 export function RankScreen() {
   const t = useT();
+  const {colors} = useTheme();
   const profile = useUserStore((s) => s.profile);
   const stats = usePointsStore(selectPointsStats);
 
@@ -77,6 +79,8 @@ function RankRow({
   last?: boolean;
 }) {
   const t = useT();
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.row, !last && styles.rowBorder, me && styles.meRow]}>
       {rank <= 3 ? (
@@ -98,29 +102,31 @@ function RankRow({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm},
-  rowBorder: {borderBottomWidth: 1, borderBottomColor: colors.border},
-  meRow: {
-    backgroundColor: colors.primary + '0D',
-    marginHorizontal: -spacing.md,
-    paddingHorizontal: spacing.md,
-    borderRadius: 10,
-    borderBottomWidth: 0,
-  },
-  rank: {
-    width: 28,
-    fontWeight: '800',
-    color: colors.textFaint,
-    fontSize: typography.sub,
-    textAlign: 'center',
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    row: {flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm},
+    rowBorder: {borderBottomWidth: 1, borderBottomColor: colors.border},
+    meRow: {
+      backgroundColor: colors.primary + '0D',
+      marginHorizontal: -spacing.md,
+      paddingHorizontal: spacing.md,
+      borderRadius: 10,
+      borderBottomWidth: 0,
+    },
+    rank: {
+      width: 28,
+      fontWeight: '800',
+      color: colors.textFaint,
+      fontSize: typography.sub,
+      textAlign: 'center',
+    },
+    avatar: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });
+}

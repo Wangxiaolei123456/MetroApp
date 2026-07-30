@@ -137,6 +137,10 @@ const zh = {
   'settings.dataSharing': '数据共享偏好',
   'settings.cityGroup': '城市（地铁线路）',
   'settings.langGroup': '语言 / Language',
+  'settings.themeGroup': '外观',
+  'settings.themeSystem': '跟随系统',
+  'settings.themeDark': '深色',
+  'settings.themeLight': '浅色',
   'settings.footer': '定位数据仅用于行程识别与积分发放，可在本地关闭。详见隐私政策。',
 
   // 路线规划
@@ -396,6 +400,10 @@ const en: Record<TKey, string> = {
   'settings.dataSharing': 'Data sharing preference',
   'settings.cityGroup': 'City (metro network)',
   'settings.langGroup': 'Language / 语言',
+  'settings.themeGroup': 'Appearance',
+  'settings.themeSystem': 'System',
+  'settings.themeDark': 'Dark',
+  'settings.themeLight': 'Light',
   'settings.footer': 'Location data is only used for trip detection and points issuance, and can be disabled locally. See privacy policy.',
 
   'route.title': 'Route Planner',

@@ -1,9 +1,11 @@
 import React, {useState} from 'react';
 import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {getCityGraph} from '@/data/metroData';
 import {useSettingsStore} from '@/store/useSettingsStore';
-import {colors, shadows, spacing, typography} from '@/theme/theme';
+import {ThemeColors, spacing, typography} from '@/theme/theme';
+import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Chip} from '@/components/common';
 import {useT} from '@/i18n';
 import {Station} from '@/types';
@@ -15,7 +17,10 @@ import {Station} from '@/types';
  */
 export function StationInfoScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const t = useT();
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const cityId = useSettingsStore((s) => s.cityId);
   const graph = getCityGraph(cityId);
   const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
@@ -42,7 +47,7 @@ export function StationInfoScreen() {
   return (
     <View style={{flex: 1, backgroundColor: colors.background}}>
       {/* 顶部栏：一级返回上一页，二级返回线路列表 */}
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top + spacing.sm}]}>
         <Pressable
           onPress={goBack}
           hitSlop={8}
@@ -51,13 +56,14 @@ export function StationInfoScreen() {
               width: 36,
               height: 36,
               borderRadius: 18,
-              backgroundColor: colors.card,
+              backgroundColor: colors.elevated,
+              borderWidth: 1,
+              borderColor: colors.border,
               alignItems: 'center',
               justifyContent: 'center',
               marginRight: spacing.md,
               opacity: pressed ? 0.7 : 1,
             },
-            shadows.card,
           ]}>
           <Text style={{fontSize: 20, color: colors.text, marginTop: -2}}>‹</Text>
         </Pressable>
@@ -84,7 +90,7 @@ export function StationInfoScreen() {
           renderItem={({item}) => (
             <Pressable
               onPress={() => chooseStation(item)}
-              style={({pressed}) => [styles.stationRow, pressed && {backgroundColor: colors.background}]}>
+              style={({pressed}) => [styles.stationRow, pressed && {backgroundColor: colors.pressed}]}>
               <View style={[styles.dot, {backgroundColor: selectedLine.color}]} />
               <View style={{flex: 1, marginLeft: spacing.md}}>
                 <Text style={styles.stationName}>{item.name}</Text>
@@ -104,7 +110,7 @@ export function StationInfoScreen() {
           renderItem={({item}) => (
             <Pressable
               onPress={() => setSelectedLineId(item.id)}
-              style={({pressed}) => [styles.lineRow, pressed && {backgroundColor: colors.background}]}>
+              style={({pressed}) => [styles.lineRow, pressed && {backgroundColor: colors.pressed}]}>
               <View style={[styles.dot, {backgroundColor: item.color}]} />
               <View style={{flex: 1, marginLeft: spacing.md}}>
                 <Text style={styles.lineName}>{item.name}</Text>
@@ -121,65 +127,67 @@ export function StationInfoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  headerTitle: {
-    fontSize: typography.title,
-    fontWeight: '800',
-    color: colors.text,
-    letterSpacing: 0.2,
-  },
-  headerSub: {
-    fontSize: typography.sub,
-    color: colors.textSub,
-    marginTop: 2,
-  },
-  list: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  lineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  stationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  lineName: {
-    fontSize: typography.body,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  stationName: {
-    fontSize: typography.body,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  transferTag: {
-    fontSize: typography.caption,
-    color: colors.warning,
-    marginTop: 2,
-  },
-  count: {
-    fontSize: typography.sub,
-    color: colors.textSub,
-  },
-});
+function makeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
+    },
+    headerTitle: {
+      fontSize: typography.title,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: 0.2,
+    },
+    headerSub: {
+      fontSize: typography.sub,
+      color: colors.textSub,
+      marginTop: 2,
+    },
+    list: {
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.xl,
+    },
+    lineRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    stationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    dot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+    },
+    lineName: {
+      fontSize: typography.body,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    stationName: {
+      fontSize: typography.body,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    transferTag: {
+      fontSize: typography.caption,
+      color: colors.warning,
+      marginTop: 2,
+    },
+    count: {
+      fontSize: typography.sub,
+      color: colors.textSub,
+    },
+  });
+}

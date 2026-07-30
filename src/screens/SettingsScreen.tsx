@@ -1,20 +1,48 @@
 import React from 'react';
-import {ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View} from 'react-native';
+import {Pressable, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View} from 'react-native';
 import {useSettingsStore} from '@/store/useSettingsStore';
 import {SUPPORTED_CITIES} from '@/data/metroData';
 import {SUPPORTED_LANGS, useT} from '@/i18n';
-import {colors, spacing, typography} from '@/theme/theme';
+import {ColorSchemePreference, spacing, typography} from '@/theme/theme';
+import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Card, ScreenHeader} from '@/components/common';
 
+const THEME_OPTS: {id: ColorSchemePreference; labelKey: 'settings.themeSystem' | 'settings.themeDark' | 'settings.themeLight'}[] = [
+  {id: 'system', labelKey: 'settings.themeSystem'},
+  {id: 'dark', labelKey: 'settings.themeDark'},
+  {id: 'light', labelKey: 'settings.themeLight'},
+];
+
 export function SettingsScreen() {
-  const {notification, privacy, setNotification, setPrivacy, cityId, setCityId, language, setLanguage} =
+  const {notification, privacy, setNotification, setPrivacy, cityId, setCityId, language, setLanguage, colorScheme, setColorScheme} =
     useSettingsStore();
   const t = useT();
+  const {colors} = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   return (
     <View style={{flex: 1, backgroundColor: colors.background}}>
       <ScreenHeader title={t('settings.title')} />
       <ScrollView>
+        <Text style={styles.group}>{t('settings.themeGroup')}</Text>
+        <Card style={{paddingVertical: spacing.sm}}>
+          <View style={styles.themeRow}>
+            {THEME_OPTS.map((opt) => {
+              const active = colorScheme === opt.id;
+              return (
+                <Pressable
+                  key={opt.id}
+                  onPress={() => setColorScheme(opt.id)}
+                  style={[styles.themeChip, active && styles.themeChipActive]}>
+                  <Text style={[styles.themeChipText, active && styles.themeChipTextActive]}>
+                    {t(opt.labelKey)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Card>
+
         <Text style={styles.group}>{t('settings.langGroup')}</Text>
         <Card style={{paddingVertical: spacing.sm}}>
           {SUPPORTED_LANGS.map((l) => (
@@ -27,7 +55,7 @@ export function SettingsScreen() {
               </View>
               {language === l.id && (
                 <View style={styles.check}>
-                  <Text style={{color: colors.white, fontSize: 12, fontWeight: '800'}}>✓</Text>
+                  <Text style={{color: colors.textOnBrand, fontSize: 12, fontWeight: '800'}}>✓</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -50,7 +78,7 @@ export function SettingsScreen() {
               </View>
               {cityId === c.id && (
                 <View style={styles.check}>
-                  <Text style={{color: colors.white, fontSize: 12, fontWeight: '800'}}>✓</Text>
+                  <Text style={{color: colors.textOnBrand, fontSize: 12, fontWeight: '800'}}>✓</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -79,38 +107,72 @@ export function SettingsScreen() {
 }
 
 function Toggle({label, value, onToggle}: {label: string; value: boolean; onToggle: (v: boolean) => void}) {
+  const {colors} = useTheme();
   return (
-    <View style={styles.toggleRow}>
+    <View style={stylesToggle.toggleRow}>
       <Text style={{flex: 1, color: colors.text, fontSize: typography.body}}>{label}</Text>
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{false: '#D6DAE3', true: colors.primary + '66'}}
-        thumbColor={value ? colors.primary : '#f4f4f5'}
+        trackColor={{false: colors.elevated, true: colors.primary + '88'}}
+        thumbColor={value ? colors.primaryBright : colors.textFaint}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  group: {
-    fontSize: typography.caption,
-    color: colors.textFaint,
-    marginHorizontal: spacing.xl,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
+const stylesToggle = StyleSheet.create({
   toggleRow: {flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm},
-  cityRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.sm},
-  check: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });
+
+function makeStyles(colors: {textFaint: string; primary: string; primarySoft: string; primaryBright: string; border: string; text: string}) {
+  return StyleSheet.create({
+    group: {
+      fontSize: typography.caption,
+      color: colors.textFaint,
+      marginHorizontal: spacing.xl,
+      marginTop: spacing.sm,
+      marginBottom: spacing.xs,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    cityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.sm,
+    },
+    check: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    themeRow: {flexDirection: 'row', gap: spacing.sm},
+    themeChip: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 12,
+      alignItems: 'center',
+      backgroundColor: colors.primarySoft,
+      borderWidth: 1.5,
+      borderColor: 'transparent',
+    },
+    themeChipActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySoft,
+    },
+    themeChipText: {
+      fontSize: typography.sub,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    themeChipTextActive: {
+      color: colors.primaryBright,
+      fontWeight: '800',
+    },
+  });
+}
