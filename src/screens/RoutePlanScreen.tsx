@@ -78,8 +78,6 @@ export function RoutePlanScreen() {
   }, [fromId, toId, plan, setPlanStore]);
 
   const stationName = (id: string) => graph.stations.find((s) => s.id === id)?.name ?? '';
-  const pinColor = (s: Station) =>
-    s.isTransfer ? '#000000' : graph.lines.find((l) => l.id === s.lineIds[0])?.color ?? colors.primary;
 
   const fromMatches = fromQuery.trim()
     ? graph.stations.filter((s) => s.name.includes(fromQuery.trim()))
@@ -176,24 +174,9 @@ export function RoutePlanScreen() {
                 {fromStation && (
                   <Marker coordinate={fromStation.location} pinColor={colors.primary} title={t('common.origin')} />
                 )}
-                {toStation && (
-                  <Marker coordinate={toStation.location} pinColor={colors.danger} title={t('common.destination')} />
-                )}
               </>
-            ) : (
-              graph.stations.map((s) => (
-                <Marker
-                  key={s.id}
-                  coordinate={s.location}
-                  pinColor={pinColor(s)}
-                  onPress={() => pickEnd(s)}
-                />
-              ))
-            )}
+            ) : null}
             {loc && <Marker coordinate={loc} title={t('common.myLocation')} />}
-            {!plan && toStation && (
-              <Marker coordinate={toStation.location} pinColor={colors.danger} title={t('common.destination')} />
-            )}
           </MapView>
           <TextInput
             style={[styles.input, {marginTop: spacing.sm}]}
