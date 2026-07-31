@@ -34,7 +34,7 @@ const DEFAULT_PRIV: PrivacySettings = {
 };
 
 function parseScheme(v: unknown): ColorSchemePreference {
-  return v === 'light' || v === 'dark' || v === 'system' ? v : 'dark';
+  return v === 'light' || v === 'dark' || v === 'system' ? v : 'light';
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -42,7 +42,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   privacy: DEFAULT_PRIV,
   cityId: DEFAULT_CITY_ID,
   language: 'zh',
-  colorScheme: 'dark',
+  colorScheme: 'light',
   onboarded: false,
   async init() {
     const n = await storage.get<NotificationSettings>(STORAGE_KEYS.settings + ':notif');

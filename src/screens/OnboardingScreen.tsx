@@ -3,8 +3,8 @@ import {
   Animated,
   Dimensions,
   Easing,
-  PanResponder,
-  PanResponderGestureState,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -374,79 +374,50 @@ export function OnboardingScreen({onDone}: {onDone: () => void}) {
   const {colors, reduceMotion} = useTheme();
   const t = useT();
   const [index, setIndex] = useState(0);
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const panX = useRef(new Animated.Value(0)).current;
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
 
   const finish = useCallback(() => {
     onDone();
   }, [onDone]);
+
+  const goTo = useCallback(
+    (target: number) => {
+      const clamped = Math.max(0, Math.min(PAGES.length - 1, target));
+      setIndex(clamped);
+      scrollRef.current?.scrollTo({x: clamped * SCREEN_W, animated: true});
+    },
+    [],
+  );
 
   const goNext = useCallback(() => {
     if (index >= PAGES.length - 1) {
       finish();
       return;
     }
-    const next = index + 1;
-    setIndex(next);
-    Animated.spring(slideAnim, {
-      toValue: -next * SCREEN_W,
-      friction: 8,
-      tension: 60,
-      useNativeDriver: true,
-    }).start();
-  }, [finish, index, slideAnim]);
-
-  const goTo = useCallback(
-    (target: number) => {
-      const clamped = Math.max(0, Math.min(PAGES.length - 1, target));
-      setIndex(clamped);
-      Animated.spring(slideAnim, {
-        toValue: -clamped * SCREEN_W,
-        friction: 8,
-        tension: 60,
-        useNativeDriver: true,
-      }).start();
-    },
-    [slideAnim],
-  );
+    goTo(index + 1);
+  }, [finish, goTo, index]);
 
   const onSkip = useCallback(() => {
     finish();
   }, [finish]);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState: PanResponderGestureState) =>
-        Math.abs(gestureState.dx) > 20,
-      onPanResponderMove: (_, gestureState: PanResponderGestureState) => {
-        panX.setValue(gestureState.dx);
-      },
-      onPanResponderRelease: (_, gestureState: PanResponderGestureState) => {
-        const threshold = SCREEN_W * 0.2;
-        if (gestureState.dx < -threshold && index < PAGES.length - 1) {
-          goTo(index + 1);
-        } else if (gestureState.dx > threshold && index > 0) {
-          goTo(index - 1);
-        } else {
-          goTo(index);
-        }
-        Animated.spring(panX, {
-          toValue: 0,
-          friction: 5,
-          useNativeDriver: true,
-        }).start();
-      },
-    }),
-  ).current;
+  const onScroll = useCallback(
+    Animated.event<NativeSyntheticEvent<NativeScrollEvent>>(
+      [{nativeEvent: {contentOffset: {x: scrollX}}}],
+      {useNativeDriver: true},
+    ),
+    [scrollX],
+  );
 
-  // 监听 panX 让 slideAnim 跟随手指产生 3D 旋转视差
-  useEffect(() => {
-    if (reduceMotion) return;
-    const id = panX.addListener(({value}) => {
-      slideAnim.setValue(-index * SCREEN_W + value);
-    });
-    return () => panX.removeListener(id);
-  }, [index, panX, reduceMotion, slideAnim]);
+  const onMomentumScrollEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const page = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
+      const clamped = Math.max(0, Math.min(PAGES.length - 1, page));
+      if (clamped !== index) setIndex(clamped);
+    },
+    [index],
+  );
 
   return (
     <SafeAreaView
@@ -462,69 +433,67 @@ export function OnboardingScreen({onDone}: {onDone: () => void}) {
       </View>
 
       {/* 可滑动页面 */}
-      <View style={styles.slider} {...panResponder.panHandlers}>
-        <Animated.View
-          style={[
-            styles.pages,
-            {
-              width: PAGES.length * SCREEN_W,
-              transform: [{translateX: slideAnim}],
-            },
-          ]}>
+      <View style={styles.slider}>
+        <Animated.ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={onScroll}
+          onMomentumScrollEnd={onMomentumScrollEnd}
+          contentContainerStyle={{width: PAGES.length * SCREEN_W}}
+          style={styles.pages}>
           {PAGES.map((page, i) => {
-            const opacity = slideAnim.interpolate({
-              inputRange: [-(i + 1) * SCREEN_W, -i * SCREEN_W, -(i - 1) * SCREEN_W],
+            const opacity = scrollX.interpolate({
+              inputRange: [(i - 1) * SCREEN_W, i * SCREEN_W, (i + 1) * SCREEN_W],
               outputRange: [0, 1, 0],
               extrapolate: 'clamp',
             });
-            const scale = slideAnim.interpolate({
-              inputRange: [-(i + 1) * SCREEN_W, -i * SCREEN_W, -(i - 1) * SCREEN_W],
+            const scale = scrollX.interpolate({
+              inputRange: [(i - 1) * SCREEN_W, i * SCREEN_W, (i + 1) * SCREEN_W],
               outputRange: [0.85, 1, 0.85],
               extrapolate: 'clamp',
             });
-            const rotateY = slideAnim.interpolate({
-              inputRange: [-(i + 1) * SCREEN_W, -i * SCREEN_W, -(i - 1) * SCREEN_W],
+            const rotateY = scrollX.interpolate({
+              inputRange: [(i - 1) * SCREEN_W, i * SCREEN_W, (i + 1) * SCREEN_W],
               outputRange: ['-25deg', '0deg', '25deg'],
               extrapolate: 'clamp',
             });
 
             return (
-              <Animated.View
-                key={page.key}
-                style={[
-                  styles.page,
-                  {
-                    width: SCREEN_W,
-                    opacity,
-                    transform: [{perspective: 1200}, {rotateY}, {scale}],
-                  },
-                ]}>
-                <ScrollView
-                  contentContainerStyle={styles.pageScroll}
-                  showsVerticalScrollIndicator={false}
-                  overScrollMode="never">
-                  <HologramBadge
-                    icon={page.icon}
-                    index={i}
-                    reduceMotion={reduceMotion}
-                    primary={colors.primary}
-                    card={colors.card}
-                  />
+              <View key={page.key} style={[styles.page, {width: SCREEN_W}]}>
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.pageInner,
+                    {
+                      opacity,
+                      transform: [{perspective: 1200}, {rotateY}, {scale}],
+                    },
+                  ]}>
+                  <ScrollView
+                    contentContainerStyle={styles.pageScroll}
+                    showsVerticalScrollIndicator={false}
+                    overScrollMode="never">
+                    <HologramBadge
+                      icon={page.icon}
+                      index={i}
+                      reduceMotion={reduceMotion}
+                      primary={colors.primary}
+                      card={colors.card}
+                    />
 
                   <View style={styles.textArea}>
-                    <View style={[styles.chip, {borderColor: colors.primary}]}>
-                      <Text style={[styles.chipText, {color: colors.primary}]}>
-                        {t('onboarding.step', {step: i + 1, total: PAGES.length})}
-                      </Text>
-                    </View>
                     <Text style={[styles.title, {color: colors.text}]}>{t(page.titleKey)}</Text>
                     <Text style={[styles.body, {color: colors.textSub}]}>{t(page.bodyKey)}</Text>
                   </View>
-                </ScrollView>
-              </Animated.View>
+                  </ScrollView>
+                </Animated.View>
+              </View>
             );
           })}
-        </Animated.View>
+        </Animated.ScrollView>
       </View>
 
       {/* 底部控制区 */}
@@ -632,9 +601,11 @@ const styles = StyleSheet.create({
   },
   pages: {
     flex: 1,
-    flexDirection: 'row',
   },
   page: {
+    flex: 1,
+  },
+  pageInner: {
     flex: 1,
   },
   pageScroll: {
