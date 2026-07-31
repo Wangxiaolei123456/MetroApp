@@ -11,21 +11,31 @@ export const APP_CONFIG = {
   longDistanceThreshold: 12,
   longDistancePerStopBonus: 2,
 
-  /** 防作弊阈值（B4） */
+  /** 防作弊阈值（B4）——按地铁场景校准：地下丢星/跳点不应直接判异常 */
   antiCheat: {
     /** 总开关：false 时不标记异常、不影响积分结算 */
-    enabled: true,
-    /** 单点瞬时速度上限（米/秒），地铁约 < 33 m/s */
-    maxPlausibleSpeed: 40,
-    /** 两站最小合理时间间隔（毫秒），过短视为瞬移 */
+    enabled: false,
+    /**
+     * 连续采样瞬时速度上限（米/秒）。
+     * 地铁运营约 < 33 m/s；留余量给 GPS 误差。仅对「连续采样」生效。
+     */
+    maxPlausibleSpeed: 50,
+    /**
+     * 速度采样最大时间间隔（毫秒）。
+     * 超过则视为信号中断后恢复，不计瞬时速度（避免隧道出站「瞬移超速」误报）。
+     */
+    speedSampleMaxDtMs: 15_000,
+    /**
+     * 允许的超速噪点个数。地下 GPS 偶发跳点很常见；仅超过此数才判速度异常。
+     */
+    maxSpeedOutliers: 25,
+    /** 两站最小合理时间间隔（毫秒），过短视为站间瞬移 */
     minStationIntervalMs: 20_000,
-    /** 轨迹最大断点间隔（毫秒），超过视为定位丢失/异常 */
-    maxTrackGapMs: 120_000,
-  },
-
-  /** 到站语音播报：总开关（false 时忽略用户设置，不播报） */
-  arrivalAnnounce: {
-    enabled: true,
+    /**
+     * 轨迹最大断点（毫秒）。地铁地下丢星数分钟属正常。
+     * 设为 0 表示不因断点单独判异常（站间时间仍校验）。
+     */
+    maxTrackGapMs: 0,
   },
 
   /** 默认链上环境 */

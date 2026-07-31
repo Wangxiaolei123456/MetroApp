@@ -1,7 +1,7 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import MapView, {Marker, Polyline, PROVIDER_GOOGLE} from 'react-native-maps';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {GeoPoint, Station} from '@/types';
 import {getCityGraph} from '@/data/metroData';
@@ -26,16 +26,35 @@ export function MapScreen() {
   const [here, setHere] = useState<Station | null>(null);
   const mapRef = useRef<MapView>(null);
   const plan = usePlanStore((s) => s.plan);
+  const planRef = useRef(plan);
+  planRef.current = plan;
+  const lastFollowAt = useRef(0);
 
-  useEffect(() => {
-    setLoc(graph.city.center);
-    setHere(null);
-    const w = watchLocation((p) => {
-      setLoc(p);
-      setHere(findEnclosingStation(graph, p));
-    });
-    return () => w.remove();
-  }, [cityId]);
+  // 每次回到地图页重新订阅定位，保证规划后当前位置持续刷新
+  useFocusEffect(
+    useCallback(() => {
+      setHere(null);
+      const w = watchLocation((p) => {
+        setLoc(p);
+        setHere(findEnclosingStation(graph, p));
+        // 有规划路线时，镜头轻跟随（节流），方便看打点进度
+        if (!planRef.current) return;
+        const now = Date.now();
+        if (now - lastFollowAt.current < 1200) return;
+        lastFollowAt.current = now;
+        mapRef.current?.animateToRegion(
+          {
+            latitude: p.latitude,
+            longitude: p.longitude,
+            latitudeDelta: 0.04,
+            longitudeDelta: 0.04,
+          },
+          400,
+        );
+      });
+      return () => w.remove();
+    }, [cityId, graph]),
+  );
 
   const nearest = findNearestStation(graph, loc);
 
@@ -48,6 +67,8 @@ export function MapScreen() {
         style={StyleSheet.absoluteFill}
         customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
         userInterfaceStyle={isDark ? 'dark' : 'light'}
+        showsUserLocation
+        showsMyLocationButton={false}
         initialRegion={{
           latitude: graph.city.center.latitude,
           longitude: graph.city.center.longitude,
@@ -85,7 +106,14 @@ export function MapScreen() {
             title={t('common.destination')}
           />
         )}
-        <Marker coordinate={loc} title={t('common.myLocation')} />
+        {/* 自定义标记随 loc 刷新；与 showsUserLocation 双保险（模拟器改点时更明显） */}
+        <Marker
+          key={`me-${loc.latitude.toFixed(5)}-${loc.longitude.toFixed(5)}`}
+          coordinate={loc}
+          title={t('common.myLocation')}
+          pinColor={colors.go}
+          tracksViewChanges={false}
+        />
       </MapView>
 
       <View style={[styles.overlay, {paddingBottom: Math.max(insets.bottom, spacing.lg)}]}>

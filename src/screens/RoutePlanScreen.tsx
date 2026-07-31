@@ -14,7 +14,7 @@ import {getCityGraph} from '@/data/metroData';
 import {useSettingsStore} from '@/store/useSettingsStore';
 import {planRoutesGoogle} from '@/services/googleRouting';
 import {planRoutes as planRoutesLocal} from '@/services/metroRouting';
-import {getCurrentLocation} from '@/services/location';
+import {getCurrentLocation, watchLocation} from '@/services/location';
 import {findNearestStation} from '@/services/geofence';
 import {distanceTo, openWalkNavigation} from '@/utils/geo';
 import {GeoPoint, RouteOption, RouteTag, Station} from '@/types';
@@ -49,6 +49,7 @@ export function RoutePlanScreen() {
   const route = useRoute<any>();
   const [loc, setLoc] = useState<GeoPoint | null>(null);
   const [locError, setLocError] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
   const [fromId, setFromId] = useState<string | null>(null);
   const [fromQuery, setFromQuery] = useState('');
   const [toQuery, setToQuery] = useState('');
@@ -58,17 +59,28 @@ export function RoutePlanScreen() {
   // 起点 = 当前位置 → 映射到最近站点
   const locate = () => {
     setLocError(null);
-    getCurrentLocation()
+    setLocating(true);
+    getCurrentLocation({fresh: true})
       .then((p) => {
         setLoc(p);
         setFromId(findNearestStation(graph, p).station.id);
       })
       .catch((err: any) =>
         setLocError(t('route.locError', {msg: err?.message || t('route.locErrorFallback')})),
-      );
+      )
+      .finally(() => setLocating(false));
   };
   useEffect(() => {
     locate();
+  }, [cityId]);
+
+  // 规划页小地图：位置随移动实时更新（不改已确认的起点站，避免路线抖动）
+  useEffect(() => {
+    const w = watchLocation((p) => {
+      setLoc(p);
+      setLocError(null);
+    });
+    return () => w.remove();
   }, [cityId]);
 
   // 起终点变化后重置选中项
@@ -156,11 +168,8 @@ export function RoutePlanScreen() {
 
   const plan = routes[selIdx]?.plan ?? null;
 
-  // 把规划结果写入全局 store，供主地图「规划后展示线路」
+  // 仅在确认时写入全局 store，规划过程中不清空主地图上已有路线
   const setPlanStore = usePlanStore((s) => s.setPlan);
-  useEffect(() => {
-    setPlanStore({fromId, toId, plan});
-  }, [fromId, toId, plan, setPlanStore]);
 
   const stationName = (id: string) => graph.stations.find((s) => s.id === id)?.name ?? '';
 
@@ -185,7 +194,12 @@ export function RoutePlanScreen() {
         {/* 起点：当前位置 + 步行引导 */}
         <Card>
           <Text style={styles.label}>{t('route.fromLabel')}</Text>
-          {locError ? (
+          {locating ? (
+            <View style={styles.row}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.sub}>{t('route.locating')}</Text>
+            </View>
+          ) : locError ? (
             <Text style={styles.err}>{locError}</Text>
           ) : fromStation ? (
             <View>
@@ -222,6 +236,7 @@ export function RoutePlanScreen() {
             variant="soft"
             size="sm"
             onPress={locate}
+            disabled={locating}
             style={{marginHorizontal: 0, marginTop: spacing.md}}
           />
           <TextInput
@@ -248,6 +263,7 @@ export function RoutePlanScreen() {
           />
           <MapView
             style={styles.map}
+            showsUserLocation
             initialRegion={{
               latitude: mapCenter.latitude,
               longitude: mapCenter.longitude,
@@ -281,7 +297,14 @@ export function RoutePlanScreen() {
                 )}
               </>
             ) : null}
-            {loc && <Marker coordinate={loc} title={t('common.myLocation')} />}
+            {loc && (
+              <Marker
+                key={`me-${loc.latitude.toFixed(5)}-${loc.longitude.toFixed(5)}`}
+                coordinate={loc}
+                title={t('common.myLocation')}
+                pinColor={colors.go}
+              />
+            )}
           </MapView>
           <TextInput
             style={[styles.input, {marginTop: spacing.sm}]}
@@ -401,7 +424,11 @@ export function RoutePlanScreen() {
               <Button
                 title={t('route.startThis')}
                 variant="go"
-                onPress={() => navigation.navigate('Trip')}
+                onPress={() => {
+                  if (!plan || !fromId || !toId) return;
+                  setPlanStore({fromId, toId, plan});
+                  navigation.navigate('Trip');
+                }}
                 style={{marginHorizontal: 0, marginTop: spacing.sm, marginBottom: 0}}
               />
             </Card>

@@ -3,18 +3,22 @@ import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {Trip} from '@/types';
 import {getCityGraph} from '@/data/metroData';
-import {watchLocation} from '@/services/location';
-import {announceStationArrival, stopArrivalAnnounce} from '@/services/arrivalAnnounce';
+import {getCurrentLocation, watchLocation} from '@/services/location';
+import {
+  notifyStationAlert,
+  clearStationAlert,
+} from '@/services/arrivalAnnounce';
 import {useTripStore} from '@/store/useTripStore';
 import {useUserStore} from '@/store/useUserStore';
 import {computeTripPoints} from '@/services/pointsEngine';
-import {ThemeColors, spacing, typography} from '@/theme/theme';
+import {ThemeColors, radius, spacing, typography} from '@/theme/theme';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, Empty, ScreenHeader, SectionTitle} from '@/components/common';
 import {CrossfadeNumber, FadeInUp} from '@/components/motion';
 import {useSettingsStore} from '@/store/useSettingsStore';
 import {APP_CONFIG} from '@/config/app';
 import {useT} from '@/i18n';
+import {GeoPoint} from '@/types';
 
 const SHOW_ANTI_CHEAT = APP_CONFIG.antiCheat.enabled;
 
@@ -35,20 +39,35 @@ export function TripScreen() {
 
   const [, setTick] = useState(0);
   const [finished, setFinished] = useState<Trip | null>(null);
+  const alert = useTripStore((s) => s.stationAlert);
 
   useEffect(() => {
     if (!active) return;
-    const w = watchLocation((p) => {
+
+    const onPoint = (p: GeoPoint) => {
       const {entered} = onGps(p);
       if (entered) {
         const station = graph.stations.find((s) => s.id === entered);
-        if (station) void announceStationArrival(station);
+        if (station) {
+          const passCount = useTripStore.getState().active?.passedStations.length ?? 0;
+          void notifyStationAlert(station, graph.stations, {
+            isFirstStop: passCount <= 1,
+          });
+        }
       }
       setTick((n) => n + 1);
-    });
+    };
+
+    const w = watchLocation(onPoint);
+    // 立刻取一次；并轮询——模拟器改 GPS 时 watch 经常不回调
+    void getCurrentLocation({fresh: true}).then(onPoint).catch(() => undefined);
+    const poll = setInterval(() => {
+      void getCurrentLocation({fresh: true}).then(onPoint).catch(() => undefined);
+    }, 2500);
+
     return () => {
       w.remove();
-      stopArrivalAnnounce();
+      clearInterval(poll);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active?.id, cityId]);
@@ -59,7 +78,7 @@ export function TripScreen() {
   };
 
   const handleFinish = async () => {
-    stopArrivalAnnounce();
+    clearStationAlert();
     await finish();
     setFinished(useTripStore.getState().history[0] ?? null);
   };
@@ -68,9 +87,28 @@ export function TripScreen() {
     ? Math.max(0, active.passedStations.filter((p) => p.valid).length - 1)
     : 0;
 
+  const alertColor =
+    alert?.kind === 'destination' || alert?.kind === 'boarded'
+      ? colors.go
+      : alert?.kind === 'transfer'
+        ? colors.warning
+        : colors.primary;
+
   return (
     <View style={{flex: 1, backgroundColor: colors.background}}>
       <ScreenHeader title={t('trip.title')} subtitle={t('trip.subtitle')} />
+      {alert && (
+        <View
+          style={[
+            styles.alertBanner,
+            {
+              backgroundColor: alertColor,
+              borderColor: alertColor,
+            },
+          ]}>
+          <Text style={styles.alertText}>{alert.message}</Text>
+        </View>
+      )}
       <ScrollView>
         {!active ? (
           <FadeInUp>
@@ -281,5 +319,19 @@ function makeStyles(colors: ThemeColors) {
     dot: {width: 10, height: 10, borderRadius: 5, marginTop: 5},
     connector: {width: 2, flex: 1, minHeight: 14, backgroundColor: colors.border, marginVertical: 2},
     histHead: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+    alertBanner: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      borderRadius: radius.md,
+      borderWidth: 0,
+    },
+    alertText: {
+      fontSize: typography.body,
+      fontWeight: '700',
+      lineHeight: 22,
+      color: '#FFFFFF',
+    },
   });
 }

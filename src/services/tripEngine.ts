@@ -45,10 +45,16 @@ export function recordGps(
   const g = graph ?? getCityGraph(trip.cityId);
   const now = Date.now();
   const prev = trip.trackPoints[trip.trackPoints.length - 1];
-  const speed = prev ? estimateSpeed(
-    {at: prev.at, location: prev.location},
-    {at: now, location},
-  ) : 0;
+  const dtMs = prev ? now - prev.at : 0;
+  // 仅连续采样计入瞬时速度；断点恢复后的大位移不算超速
+  const continuityMs = APP_CONFIG.antiCheat.speedSampleMaxDtMs;
+  const speed =
+    prev && dtMs > 0 && dtMs <= continuityMs
+      ? estimateSpeed(
+          {at: prev.at, location: prev.location},
+          {at: now, location},
+        )
+      : 0;
 
   const next: Trip = {
     ...trip,
@@ -126,23 +132,44 @@ export function computeSummary(trip: Trip): TripSummary {
 }
 
 /**
- * B4 防作弊校验：基于轨迹连续性、速度、站间时间差识别异常。
- * 返回异常原因列表（空数组表示正常）。
+ * B4 防作弊校验（地铁场景）：
+ * - 以站间时间为主（真实瞬移）
+ * - 瞬时超速仅统计「连续采样」噪点，且允许一定数量
+ * - 地下丢星导致的轨迹断点默认不单独判异常
  */
 export function validateTrip(trip: Trip): string[] {
   if (!APP_CONFIG.antiCheat.enabled) return [];
 
   const reasons: string[] = [];
-  const {maxPlausibleSpeed, minStationIntervalMs, maxTrackGapMs} =
-    APP_CONFIG.antiCheat;
+  const {
+    maxPlausibleSpeed,
+    minStationIntervalMs,
+    maxTrackGapMs,
+    maxSpeedOutliers,
+    speedSampleMaxDtMs,
+  } = APP_CONFIG.antiCheat;
 
-  // 1) 速度异常：单点速度超过合理上限
-  const speedHits = trip.trackPoints.filter((p) => p.speed > maxPlausibleSpeed);
-  if (speedHits.length > 0) {
-    reasons.push(t('svc.trip.speedAnomaly', {n: speedHits.length}));
+  // 1) 速度异常：只看连续采样中的超速噪点，超过容忍个数才判异常
+  let speedHits = 0;
+  for (let i = 1; i < trip.trackPoints.length; i++) {
+    const prev = trip.trackPoints[i - 1];
+    const cur = trip.trackPoints[i];
+    const dt = cur.at - prev.at;
+    if (dt <= 0 || dt > speedSampleMaxDtMs) continue;
+    const speed =
+      cur.speed > 0
+        ? cur.speed
+        : estimateSpeed(
+            {at: prev.at, location: prev.location},
+            {at: cur.at, location: cur.location},
+          );
+    if (speed > maxPlausibleSpeed) speedHits += 1;
+  }
+  if (speedHits > maxSpeedOutliers) {
+    reasons.push(t('svc.trip.speedAnomaly', {n: speedHits}));
   }
 
-  // 2) 站间时间过短（瞬移）
+  // 2) 站间时间过短（瞬移）——主判定
   const valid = trip.passedStations.filter((p) => p.valid);
   for (let i = 1; i < valid.length; i++) {
     const dt = valid[i].enteredAt - valid[i - 1].enteredAt;
@@ -152,12 +179,14 @@ export function validateTrip(trip: Trip): string[] {
     }
   }
 
-  // 3) 轨迹断点过大
-  for (let i = 1; i < trip.trackPoints.length; i++) {
-    const gap = trip.trackPoints[i].at - trip.trackPoints[i - 1].at;
-    if (gap > maxTrackGapMs) {
-      reasons.push(t('svc.trip.gpsGap'));
-      break;
+  // 3) 轨迹断点：maxTrackGapMs=0 时跳过（地铁地下丢星属常态）
+  if (maxTrackGapMs > 0) {
+    for (let i = 1; i < trip.trackPoints.length; i++) {
+      const gap = trip.trackPoints[i].at - trip.trackPoints[i - 1].at;
+      if (gap > maxTrackGapMs) {
+        reasons.push(t('svc.trip.gpsGap'));
+        break;
+      }
     }
   }
 

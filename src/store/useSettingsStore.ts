@@ -24,7 +24,6 @@ const DEFAULT_NOTIF: NotificationSettings = {
   tripAlert: true,
   activityPush: true,
   airdropAlert: true,
-  arrivalAnnounce: true,
 };
 const DEFAULT_PRIV: PrivacySettings = {
   locationEnabled: true,

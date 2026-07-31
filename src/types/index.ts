@@ -103,6 +103,17 @@ export interface TripStationPass {
   valid: boolean;
 }
 
+/** 行程页到站/换乘提醒 */
+export type StationAlertKind = 'arrival' | 'transfer' | 'destination' | 'boarded';
+
+export interface StationAlert {
+  kind: StationAlertKind;
+  stationId: string;
+  stationName: string;
+  nextLineName?: string;
+  message: string;
+}
+
 export interface Trip {
   id: string;
   userId: string;
@@ -310,8 +321,6 @@ export interface NotificationSettings {
   tripAlert: boolean;
   activityPush: boolean;
   airdropAlert: boolean;
-  /** 进入站点围栏时语音播报到站站名 */
-  arrivalAnnounce: boolean;
 }
 
 export interface PrivacySettings {
