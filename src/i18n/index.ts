@@ -27,6 +27,21 @@ const zh = {
   'rewards.rankSub': '积分排行榜',
   'rewards.enterWallet': '查看我的钱包',
 
+  // 首次引导
+  'onboarding.skip': '跳过',
+  'onboarding.next': '下一步',
+  'onboarding.start': '开始体验',
+  'onboarding.p1Title': '边乘地铁边赚奖励',
+  'onboarding.p1Body': '进入地铁站自动打卡，按乘坐站数累计奖励，让通勤更有成就感。',
+  'onboarding.p2Title': '两种奖励，各有用处',
+  'onboarding.p2Body': '积分用于等级与徽章；RIDE 是可上链的乘车奖励，需先创建钱包接收，未来可兑换更多权益。',
+  'onboarding.p3Title': '三步开启第一段旅程',
+  'onboarding.p3Body': '在「地图」规划路线 → 进入「行程」开始打卡 → 到站结束即发放奖励。',
+
+  // 设置
+  'settings.aboutGroup': '关于',
+  'settings.reviewOnboarding': '重新查看引导',
+
   // 通用
   'common.origin': '起点',
   'common.destination': '终点',
@@ -355,6 +370,21 @@ const en: Record<TKey, string> = {
   'rewards.airdropSub': 'Complete tasks for airdrops',
   'rewards.rankSub': 'Rider leaderboard',
   'rewards.enterWallet': 'View my wallet',
+
+  // 首次引导
+  'onboarding.skip': 'Skip',
+  'onboarding.next': 'Next',
+  'onboarding.start': 'Get started',
+  'onboarding.p1Title': 'Earn rewards while riding',
+  'onboarding.p1Body': 'Auto check-in when you enter a station; rewards grow with every station you ride.',
+  'onboarding.p2Title': 'Two kinds of rewards',
+  'onboarding.p2Body': 'Points power levels & badges; RIDE is an on-chain reward you receive in your wallet for future perks.',
+  'onboarding.p3Title': 'Start your first trip in 3 steps',
+  'onboarding.p3Body': 'Plan a route on Map → tap Trip to check in → finish at your stop to claim rewards.',
+
+  // 设置
+  'settings.aboutGroup': 'About',
+  'settings.reviewOnboarding': 'Re-view guide',
 
   'common.origin': 'Origin',
   'common.destination': 'Destination',

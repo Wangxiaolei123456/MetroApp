@@ -10,6 +10,7 @@ import {usePointsStore} from '@/store/usePointsStore';
 import {useTripStore} from '@/store/useTripStore';
 import {useWalletStore} from '@/store/useWalletStore';
 import {useSettingsStore} from '@/store/useSettingsStore';
+import {OnboardingScreen} from '@/screens/OnboardingScreen';
 import {ThemeProvider, useTheme} from '@/theme/ThemeProvider';
 import {darkColors} from '@/theme/theme';
 
@@ -47,6 +48,14 @@ export default function App() {
 
 function ThemedApp() {
   const {navTheme, colors} = useTheme();
+  const onboarded = useSettingsStore((s) => s.onboarded);
+  const setOnboarded = useSettingsStore((s) => s.setOnboarded);
+
+  // 首次启动：未看过引导则展示 Onboarding，完成后持久化 onboarded
+  if (!onboarded) {
+    return <OnboardingScreen onDone={() => setOnboarded(true)} />;
+  }
+
   return (
     <NavigationContainer theme={navTheme}>
       <View style={{flex: 1, backgroundColor: colors.background}}>

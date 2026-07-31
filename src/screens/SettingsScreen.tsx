@@ -14,7 +14,7 @@ const THEME_OPTS: {id: ColorSchemePreference; labelKey: 'settings.themeSystem' |
 ];
 
 export function SettingsScreen() {
-  const {notification, privacy, setNotification, setPrivacy, cityId, setCityId, language, setLanguage, colorScheme, setColorScheme} =
+  const {notification, privacy, setNotification, setPrivacy, cityId, setCityId, language, setLanguage, colorScheme, setColorScheme, setOnboarded} =
     useSettingsStore();
   const t = useT();
   const {colors} = useTheme();
@@ -96,6 +96,14 @@ export function SettingsScreen() {
         <Card style={{paddingVertical: spacing.sm}}>
           <Toggle label={t('settings.location')} value={privacy.locationEnabled} onToggle={(v) => setPrivacy({locationEnabled: v})} />
           <Toggle label={t('settings.dataSharing')} value={privacy.dataSharing} onToggle={(v) => setPrivacy({dataSharing: v})} />
+        </Card>
+
+        <Text style={styles.group}>{t('settings.aboutGroup')}</Text>
+        <Card>
+          <TouchableOpacity style={styles.cityRow} onPress={() => setOnboarded(false)} activeOpacity={0.6}>
+            <Text style={{color: colors.text, fontSize: typography.body}}>{t('settings.reviewOnboarding')}</Text>
+            <Text style={{color: colors.textFaint, fontSize: 18}}>›</Text>
+          </TouchableOpacity>
         </Card>
 
         <Text style={{fontSize: typography.caption, color: colors.textSub, margin: spacing.lg}}>

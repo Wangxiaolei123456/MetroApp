@@ -12,12 +12,15 @@ interface SettingsState {
   cityId: string;
   language: Lang;
   colorScheme: ColorSchemePreference;
+  /** 是否已看过首次引导；false 时 App 会展示 Onboarding */
+  onboarded: boolean;
   init: () => Promise<void>;
   setNotification: (patch: Partial<NotificationSettings>) => Promise<void>;
   setPrivacy: (patch: Partial<PrivacySettings>) => Promise<void>;
   setCityId: (id: string) => Promise<void>;
   setLanguage: (lang: Lang) => Promise<void>;
   setColorScheme: (scheme: ColorSchemePreference) => Promise<void>;
+  setOnboarded: (v: boolean) => Promise<void>;
 }
 
 const DEFAULT_NOTIF: NotificationSettings = {
@@ -40,12 +43,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   cityId: DEFAULT_CITY_ID,
   language: 'zh',
   colorScheme: 'dark',
+  onboarded: false,
   async init() {
     const n = await storage.get<NotificationSettings>(STORAGE_KEYS.settings + ':notif');
     const p = await storage.get<PrivacySettings>(STORAGE_KEYS.settings + ':priv');
     const c = await storage.get<string>(STORAGE_KEYS.settings + ':city');
     const l = await storage.get<Lang>(STORAGE_KEYS.settings + ':lang');
     const scheme = await storage.get<ColorSchemePreference>(STORAGE_KEYS.settings + ':theme');
+    const ob = await storage.get<boolean>(STORAGE_KEYS.settings + ':onboarded');
     const cityId = c && SUPPORTED_CITIES.some((x) => x.id === c) ? c : DEFAULT_CITY_ID;
     set({
       notification: {...DEFAULT_NOTIF, ...(n ?? {})},
@@ -53,6 +58,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       cityId,
       language: l === 'en' || l === 'zh' ? l : 'zh',
       colorScheme: parseScheme(scheme),
+      onboarded: !!ob,
     });
   },
   async setNotification(patch) {
@@ -77,5 +83,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   async setColorScheme(scheme) {
     set({colorScheme: scheme});
     await storage.set(STORAGE_KEYS.settings + ':theme', scheme);
+  },
+  async setOnboarded(v) {
+    set({onboarded: v});
+    await storage.set(STORAGE_KEYS.settings + ':onboarded', v);
   },
 }));
