@@ -10,7 +10,7 @@ let lastAlertKey = '';
 let lastAlertAt = 0;
 let dismissTimer: ReturnType<typeof setTimeout> | null = null;
 const DEDUPE_MS = 20_000;
-const BANNER_MS = 8_000;
+const BANNER_MS = 12_000;
 
 function stationDisplayName(station: Station, lang: 'zh' | 'en'): string {
   if (lang === 'en') return station.nameEn || station.name;

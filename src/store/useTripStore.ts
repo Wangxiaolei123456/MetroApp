@@ -16,14 +16,17 @@ interface TripState {
   active: Trip | null;
   history: Trip[];
   ready: boolean;
-  /** 到站/换乘提醒横幅（行程页展示） */
+  /** 到站/换乘提醒 */
   stationAlert: StationAlert | null;
+  /** 刚结束的行程，供结算弹窗展示 */
+  finishResult: Trip | null;
   init: () => Promise<void>;
   start: (userId: string, cityId: string) => void;
   onGps: (location: GeoPoint) => {entered?: string; left?: string};
   finish: () => Promise<void>;
   clearActive: () => void;
   setStationAlert: (alert: StationAlert | null) => void;
+  clearFinishResult: () => void;
 }
 
 const LOCK_RATIO = 0.3; // C5 30% 积分锁定至空投周期结束
@@ -34,6 +37,7 @@ export const useTripStore = create<TripState>((set, get) => ({
   history: [],
   ready: false,
   stationAlert: null,
+  finishResult: null,
   async init() {
     const history = await storage.get<Trip[]>(STORAGE_KEYS.trips);
     const seen = new Set<string>();
@@ -48,7 +52,7 @@ export const useTripStore = create<TripState>((set, get) => ({
     set({history: deduped, ready: true});
   },
   start(userId, cityId) {
-    set({active: createTrip(userId, cityId), stationAlert: null});
+    set({active: createTrip(userId, cityId), stationAlert: null, finishResult: null});
   },
   onGps(location) {
     const active = get().active;
@@ -76,7 +80,7 @@ export const useTripStore = create<TripState>((set, get) => ({
     }
     const prev = get().history.filter((t) => t.id !== finalized.id);
     const history = [finalized, ...prev];
-    set({history});
+    set({history, finishResult: finalized});
     await storage.set(STORAGE_KEYS.trips, history);
   },
   clearActive() {
@@ -84,5 +88,8 @@ export const useTripStore = create<TripState>((set, get) => ({
   },
   setStationAlert(alert) {
     set({stationAlert: alert});
+  },
+  clearFinishResult() {
+    set({finishResult: null});
   },
 }));

@@ -3,6 +3,8 @@ import {ActivityIndicator, View} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {RootNavigator} from '@/navigation/RootNavigator';
+import {StationAlertModal} from '@/components/StationAlertModal';
+import {TripFinishModal} from '@/components/TripFinishModal';
 import {useUserStore} from '@/store/useUserStore';
 import {usePointsStore} from '@/store/usePointsStore';
 import {useTripStore} from '@/store/useTripStore';
@@ -49,6 +51,8 @@ function ThemedApp() {
     <NavigationContainer theme={navTheme}>
       <View style={{flex: 1, backgroundColor: colors.background}}>
         <RootNavigator />
+        <StationAlertModal />
+        <TripFinishModal />
       </View>
     </NavigationContainer>
   );
