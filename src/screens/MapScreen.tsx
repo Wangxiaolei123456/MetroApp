@@ -1,6 +1,6 @@
 import React, {useCallback, useRef, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
-import MapView, {Marker, Polyline, PROVIDER_GOOGLE} from 'react-native-maps';
+import MapView, {Marker, Polyline, PROVIDER_DEFAULT} from 'react-native-maps';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {GeoPoint, Station} from '@/types';
@@ -62,7 +62,7 @@ export function MapScreen() {
     <View style={{flex: 1, backgroundColor: colors.background}}>
       <MapView
         ref={mapRef}
-        provider={PROVIDER_GOOGLE}
+        provider={PROVIDER_DEFAULT}
         key={`${cityId}-${isDark}`}
         style={StyleSheet.absoluteFill}
         customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
