@@ -123,6 +123,10 @@ export interface Trip {
   endedAt?: number;
   startStationId?: string;
   endStationId?: string;
+  /** 规划的目的地站（来自行程规划，用于进度条）；区别于结束时的 endStationId */
+  destStationId?: string;
+  /** 规划的途经站点序列（来自行程规划，用于进度条） */
+  plannedStationIds?: string[];
   passedStations: TripStationPass[];
   /** 定位轨迹采样点 */
   trackPoints: { at: number; location: GeoPoint; speed: number }[];

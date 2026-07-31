@@ -16,6 +16,7 @@ export function TripFinishModal() {
   const t = useT();
   const {colors} = useTheme();
   const trip = useTripStore((s) => s.finishResult);
+  const auto = useTripStore((s) => s.finishAuto);
   const clear = useTripStore((s) => s.clearFinishResult);
   const cityId = useSettingsStore((s) => s.cityId);
   const graph = getCityGraph(cityId);
@@ -45,6 +46,11 @@ export function TripFinishModal() {
             <Text style={[styles.route, {color: colors.textSub}]}>
               {name(trip.startStationId)} → {name(trip.endStationId)}
             </Text>
+            {auto && (
+              <Text style={[styles.autoNote, {color: colors.go}]}>
+                {t('trip.finishModal.autoNote', {name: name(trip.endStationId)})}
+              </Text>
+            )}
 
             {summary && (
               <View style={styles.stats}>
@@ -159,6 +165,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: typography.sub,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  autoNote: {
+    marginTop: spacing.xs,
+    fontSize: typography.caption,
+    fontWeight: '700',
     textAlign: 'center',
   },
   stats: {

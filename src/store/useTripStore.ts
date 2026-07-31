@@ -10,7 +10,14 @@ import {storage, STORAGE_KEYS} from '@/services/storage';
 import {usePointsStore} from './usePointsStore';
 import {useUserStore} from './useUserStore';
 import {useWalletStore} from './useWalletStore';
+import {usePlanStore} from './usePlanStore';
 import type {StationAlert} from '@/types';
+
+/** 开始行程时可带入的规划信息，用于行程页进度条 */
+export interface TripPlanInput {
+  destStationId?: string;
+  plannedStationIds?: string[];
+}
 
 interface TripState {
   active: Trip | null;
@@ -20,10 +27,12 @@ interface TripState {
   stationAlert: StationAlert | null;
   /** 刚结束的行程，供结算弹窗展示 */
   finishResult: Trip | null;
+  /** 最近一次结算是否由「到达终点站」自动触发 */
+  finishAuto: boolean;
   init: () => Promise<void>;
-  start: (userId: string, cityId: string) => void;
-  onGps: (location: GeoPoint) => {entered?: string; left?: string};
-  finish: () => Promise<void>;
+  start: (userId: string, cityId: string, plan?: TripPlanInput) => void;
+  onGps: (location: GeoPoint) => {entered?: string; left?: string; arrivedDest?: boolean};
+  finish: (opts?: {auto?: boolean}) => Promise<void>;
   clearActive: () => void;
   setStationAlert: (alert: StationAlert | null) => void;
   clearFinishResult: () => void;
@@ -38,6 +47,7 @@ export const useTripStore = create<TripState>((set, get) => ({
   ready: false,
   stationAlert: null,
   finishResult: null,
+  finishAuto: false,
   async init() {
     const history = await storage.get<Trip[]>(STORAGE_KEYS.trips);
     const seen = new Set<string>();
@@ -51,20 +61,35 @@ export const useTripStore = create<TripState>((set, get) => ({
     }
     set({history: deduped, ready: true});
   },
-  start(userId, cityId) {
-    set({active: createTrip(userId, cityId), stationAlert: null, finishResult: null});
+  start(userId, cityId, plan) {
+    const trip = createTrip(userId, cityId);
+    if (plan) {
+      trip.destStationId = plan.destStationId;
+      trip.plannedStationIds = plan.plannedStationIds;
+    }
+    set({active: trip, stationAlert: null, finishResult: null, finishAuto: false});
   },
   onGps(location) {
     const active = get().active;
     if (!active) return {};
     const {trip, entered, left} = recordGpsSvc(active, location);
     set({active: trip});
-    return {entered, left};
+
+    // 到达规划终点站：自动结束并结算，无需用户手动点「结束」
+    const arrivedDest = Boolean(
+      entered && trip.destStationId && entered === trip.destStationId,
+    );
+    if (arrivedDest) {
+      void get().finish({auto: true});
+    }
+    return {entered, left, arrivedDest};
   },
-  async finish() {
+  async finish(opts) {
     const active = get().active;
     if (!active) return;
-    set({active: null, stationAlert: null});
+    set({active: null, stationAlert: null, finishAuto: Boolean(opts?.auto)});
+    // 行程结束后清理已带走的规划信息，避免下次自由乘车时残留旧目的地
+    usePlanStore.getState().clear();
     const finalized = finalizeTrip(active);
     if (finalized.status === 'completed' && finalized.summary) {
       const txs = buildTripTransactions(
@@ -90,6 +115,6 @@ export const useTripStore = create<TripState>((set, get) => ({
     set({stationAlert: alert});
   },
   clearFinishResult() {
-    set({finishResult: null});
+    set({finishResult: null, finishAuto: false});
   },
 }));

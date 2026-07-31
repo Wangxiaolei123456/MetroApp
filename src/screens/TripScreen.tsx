@@ -12,10 +12,23 @@ import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, Empty, ScreenHeader, SectionTitle} from '@/components/common';
 import {CrossfadeNumber, FadeInUp} from '@/components/motion';
 import {useSettingsStore} from '@/store/useSettingsStore';
+import {usePlanStore} from '@/store/usePlanStore';
 import {APP_CONFIG} from '@/config/app';
 import {useT} from '@/i18n';
+import {RoutePlan} from '@/types';
 
 const SHOW_ANTI_CHEAT = APP_CONFIG.antiCheat.enabled;
+
+// 将规划路线的各段站点拼接为去重后的完整途经序列，用于计算行程进度。
+function flattenPlannedStations(plan: RoutePlan): string[] {
+  const seq: string[] = [];
+  for (const leg of plan.legs) {
+    for (const id of leg.stationIds) {
+      if (seq[seq.length - 1] !== id) seq.push(id);
+    }
+  }
+  return seq;
+}
 
 export function TripScreen() {
   const navigation = useNavigation<any>();
@@ -31,6 +44,7 @@ export function TripScreen() {
   const onGps = useTripStore((s) => s.onGps);
   const finish = useTripStore((s) => s.finish);
   const profile = useUserStore((s) => s.profile);
+  const planStore = usePlanStore();
 
   const [, setTick] = useState(0);
 
@@ -38,7 +52,13 @@ export function TripScreen() {
     if (!active) return;
 
     const onPoint = (p: GeoPoint) => {
-      const {entered} = onGps(p);
+      const {entered, arrivedDest} = onGps(p);
+      if (arrivedDest) {
+        // 到达终点站已自动结算，收起提醒横幅即可
+        clearStationAlert();
+        setTick((n) => n + 1);
+        return;
+      }
       if (entered) {
         const station = graph.stations.find((s) => s.id === entered);
         if (station) {
@@ -66,7 +86,15 @@ export function TripScreen() {
 
   const handleStart = () => {
     const uid = profile?.id ?? 'me';
-    start(uid, cityId);
+    // 若此前在规划页规划过路线，把目的地与途经序列带入行程，驱动进度条
+    const plan = planStore.plan;
+    const planInput = plan
+      ? {
+          destStationId: planStore.toId ?? undefined,
+          plannedStationIds: flattenPlannedStations(plan),
+        }
+      : undefined;
+    start(uid, cityId, planInput);
   };
 
   const handleFinish = async () => {
@@ -77,6 +105,22 @@ export function TripScreen() {
   const passedCount = active
     ? Math.max(0, active.passedStations.filter((p) => p.valid).length - 1)
     : 0;
+
+  // 进度条：基于规划路线计算「当前已到达第几站 / 总站数」，让用户知道走到哪了。
+  const plannedSeq = active?.plannedStationIds ?? [];
+  const passedValid = active ? active.passedStations.filter((p) => p.valid) : [];
+  let anchorIdx = -1;
+  for (let i = passedValid.length - 1; i >= 0; i--) {
+    const idx = plannedSeq.indexOf(passedValid[i].stationId);
+    if (idx >= 0) {
+      anchorIdx = idx;
+      break;
+    }
+  }
+  const reached = anchorIdx >= 0 ? anchorIdx + 1 : passedValid.length;
+  const planTotal = plannedSeq.length;
+  const progress = planTotal > 0 ? Math.min(reached / planTotal, 1) : 0;
+  const destName = active?.destStationId ? stationName(active.destStationId) : '';
 
   return (
     <View style={{flex: 1, backgroundColor: colors.background}}>
@@ -135,6 +179,34 @@ export function TripScreen() {
                   })}
                 </Text>
               </View>
+              {planTotal > 0 && (
+                <View style={styles.progressWrap}>
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, {width: `${Math.round(progress * 100)}%`}]} />
+                  </View>
+                  <View style={styles.progressMeta}>
+                    <Text style={{color: colors.textSub, fontSize: typography.sub, flex: 1}} numberOfLines={1}>
+                      {t('trip.destLabel', {name: destName})}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.textSub,
+                        fontSize: typography.sub,
+                        fontWeight: '600',
+                        fontVariant: ['tabular-nums'],
+                      }}>
+                      {t('trip.progressMeta', {
+                        reached,
+                        total: planTotal,
+                        pct: Math.round(progress * 100),
+                      })}
+                    </Text>
+                  </View>
+                  <Text style={{color: colors.textFaint, fontSize: typography.caption, marginTop: spacing.xs}}>
+                    {t('trip.autoFinishHint')}
+                  </Text>
+                </View>
+              )}
               <View style={{marginTop: spacing.lg}}>
                 {active.passedStations.map((p, i) => (
                   <FadeInUp key={`${p.stationId}-${p.enteredAt}-${i}`} delay={i * 40}>
@@ -226,6 +298,19 @@ export function TripScreen() {
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     liveRow: {alignItems: 'center'},
+    progressWrap: {marginTop: spacing.lg},
+    progressTrack: {
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: colors.border,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: colors.go,
+      borderRadius: 5,
+    },
+    progressMeta: {flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs},
     liveRing: {
       width: 108,
       height: 108,
