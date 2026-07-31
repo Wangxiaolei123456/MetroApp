@@ -9,12 +9,7 @@ import {TKey, useT} from '@/i18n';
 
 function getMenu(colors: ThemeColors): {labelKey: TKey; target: string; icon: string; color: string}[] {
   return [
-    {labelKey: 'me.menu.points', target: 'Points', icon: '🏅', color: colors.gold},
-    {labelKey: 'me.menu.wallet', target: 'Wallet', icon: '👛', color: colors.primary},
-    {labelKey: 'me.menu.airdrop', target: 'Airdrop', icon: '🎁', color: colors.accent},
-    {labelKey: 'me.menu.tasks', target: 'Tasks', icon: '📋', color: colors.success},
-    {labelKey: 'me.menu.activities', target: 'Activities', icon: '📍', color: colors.warning},
-    {labelKey: 'me.menu.rank', target: 'Rank', icon: '🏆', color: colors.bronze},
+    {labelKey: 'nav.rewards', target: 'RewardsTab', icon: '🎁', color: colors.accent},
     {labelKey: 'me.menu.settings', target: 'Settings', icon: '⚙️', color: colors.textSub},
     {labelKey: 'me.menu.help', target: 'Help', icon: '💬', color: colors.primaryDark},
   ];

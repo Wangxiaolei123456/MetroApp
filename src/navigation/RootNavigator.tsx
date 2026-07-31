@@ -18,10 +18,12 @@ import {TasksScreen} from '@/screens/TasksScreen';
 import {ActivitiesScreen} from '@/screens/ActivitiesScreen';
 import {RankScreen} from '@/screens/RankScreen';
 import {HelpScreen} from '@/screens/HelpScreen';
+import {RewardsHome} from '@/screens/RewardsHome';
 
 const Tab = createBottomTabNavigator();
 const MapStack = createNativeStackNavigator();
 const MeStack = createNativeStackNavigator();
+const RewardsStack = createNativeStackNavigator();
 
 function MapStackScreen() {
   return (
@@ -33,26 +35,38 @@ function MapStackScreen() {
   );
 }
 
+// 把原本埋在「我的」深层的激励模块（积分/任务/活动/空投/排行）聚合为一级「奖励」Tab。
+function RewardsTabScreen() {
+  return (
+    <RewardsStack.Navigator screenOptions={{headerShown: false}}>
+      <RewardsStack.Screen name="RewardsHome" component={RewardsHome} />
+      <RewardsStack.Screen name="Points" component={PointsScreen} />
+      <RewardsStack.Screen name="Tasks" component={TasksScreen} />
+      <RewardsStack.Screen name="Activities" component={ActivitiesScreen} />
+      <RewardsStack.Screen name="Airdrop" component={AirdropScreen} />
+      <RewardsStack.Screen name="Rank" component={RankScreen} />
+    </RewardsStack.Navigator>
+  );
+}
+
+// 「我的」精简为个人主页 + 设置 + 帮助，激励相关入口统一收归到「奖励」Tab。
 function MeStackScreen() {
   return (
     <MeStack.Navigator screenOptions={{headerShown: false}}>
       <MeStack.Screen name="Me" component={MeScreen} />
       <MeStack.Screen name="Settings" component={SettingsScreen} />
-      <MeStack.Screen name="Airdrop" component={AirdropScreen} />
-      <MeStack.Screen name="Tasks" component={TasksScreen} />
-      <MeStack.Screen name="Activities" component={ActivitiesScreen} />
-      <MeStack.Screen name="Rank" component={RankScreen} />
       <MeStack.Screen name="Help" component={HelpScreen} />
     </MeStack.Navigator>
   );
 }
 
+// Tab 图标改用语义化 emoji 提升识别度；如需更专业的矢量图标，可替换为 react-native-vector-icons。
 const TABS = [
-  {name: 'MapTab', component: MapStackScreen, labelKey: 'nav.map' as const, icon: '◎'},
-  {name: 'Trip', component: TripScreen, labelKey: 'nav.trip' as const, icon: '▶'},
-  {name: 'Points', component: PointsScreen, labelKey: 'nav.points' as const, icon: '◆'},
-  {name: 'Wallet', component: WalletScreen, labelKey: 'nav.wallet' as const, icon: '◇'},
-  {name: 'MeTab', component: MeStackScreen, labelKey: 'nav.me' as const, icon: '○'},
+  {name: 'MapTab', component: MapStackScreen, labelKey: 'nav.map' as const, icon: '🗺'},
+  {name: 'Trip', component: TripScreen, labelKey: 'nav.trip' as const, icon: '🚇'},
+  {name: 'RewardsTab', component: RewardsTabScreen, labelKey: 'nav.rewards' as const, icon: '🎁'},
+  {name: 'Wallet', component: WalletScreen, labelKey: 'nav.wallet' as const, icon: '👛'},
+  {name: 'MeTab', component: MeStackScreen, labelKey: 'nav.me' as const, icon: '👤'},
 ];
 
 export function RootNavigator() {

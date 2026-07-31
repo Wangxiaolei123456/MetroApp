@@ -1,11 +1,11 @@
-import {useMemo} from 'react';
-import {useSettingsStore} from '@/store/useSettingsStore';
+import { useMemo } from 'react';
+import { useSettingsStore } from '@/store/useSettingsStore';
 
 export type Lang = 'zh' | 'en';
 
-export const SUPPORTED_LANGS: {id: Lang; label: string; labelEn: string}[] = [
-  {id: 'zh', label: '简体中文', labelEn: 'Simplified Chinese'},
-  {id: 'en', label: 'English', labelEn: 'English'},
+export const SUPPORTED_LANGS: { id: Lang; label: string; labelEn: string }[] = [
+  { id: 'zh', label: '简体中文', labelEn: 'Simplified Chinese' },
+  { id: 'en', label: 'English', labelEn: 'English' },
 ];
 
 const zh = {
@@ -15,6 +15,17 @@ const zh = {
   'nav.points': '积分',
   'nav.wallet': '钱包',
   'nav.me': '我的',
+  'nav.rewards': '奖励',
+
+  // 奖励中心
+  'rewards.title': '奖励中心',
+  'rewards.subtitle': '乘车赚积分，参与活动赢空投',
+  'rewards.pointsSub': '积分余额、等级与徽章',
+  'rewards.tasksSub': '每日与新手任务领奖励',
+  'rewards.activitiesSub': '附近地铁活动与福利',
+  'rewards.airdropSub': '完成任务瓜分空投',
+  'rewards.rankSub': '积分排行榜',
+  'rewards.enterWallet': '查看我的钱包',
 
   // 通用
   'common.origin': '起点',
@@ -34,7 +45,8 @@ const zh = {
   // 行程
   'trip.title': '乘车打卡',
   'trip.subtitle': '进入围栏自动进站，离开自动结算',
-  'trip.startHint': '点击下方按钮手动开始行程；进入地铁站地理围栏将自动识别进站（B1）。',
+  'trip.startHint':
+    '点击下方按钮手动开始行程；进入地铁站地理围栏将自动识别进站（B1）。',
   'trip.start': '🚇 开始行程',
   'trip.passedCount': '已途经站数',
   'trip.startStation': '起始站：{name}',
@@ -61,9 +73,11 @@ const zh = {
   'trip.finishModal.min': '分',
   'trip.finishModal.reward': '本程收益',
   'trip.finishModal.points': '积分',
-  'trip.finishModal.pointsDetail': '基础 {base} · 换乘 {transfer} · 长途 {long}',
+  'trip.finishModal.pointsDetail':
+    '基础 {base} · 换乘 {transfer} · 长途 {long}',
   'trip.finishModal.ok': '太棒了',
-  'trip.antiCheat': '防作弊已开启：以站间时间为主；地下 GPS 断点/少量跳点不单独判异常',
+  'trip.antiCheat':
+    '防作弊已开启：以站间时间为主；地下 GPS 断点/少量跳点不单独判异常',
   'trip.history': '历史行程（{n}）',
   'trip.emptyHistory': '还没有行程记录，去乘坐第一程吧',
   'trip.statusCompleted': '正常',
@@ -74,7 +88,8 @@ const zh = {
   'trip.report': '本次行程报告',
   'trip.reportStops': '途经 {n} 站，里程 {km} km',
   'trip.reportDuration': '耗时 {min} 分钟',
-  'trip.reportPoints': '获得积分：{total}（基础 {base} + 换乘 {transfer} + 长途 {long}）',
+  'trip.reportPoints':
+    '获得积分：{total}（基础 {base} + 换乘 {transfer} + 长途 {long}）',
   'trip.abnormalNote': '⚠ 异常：{reasons}（积分未计入）',
 
   // 积分
@@ -104,7 +119,8 @@ const zh = {
   'wallet.title': 'Uptick 钱包',
   'wallet.subtitleCreate': 'D1 创建或导入兼容钱包',
   'wallet.subtitleAssets': 'D3 资产管理',
-  'wallet.keychainNote': '私钥将使用系统级加密存储（iOS Keychain / Android Keystore），绝不离开本机（D6）。',
+  'wallet.keychainNote':
+    '私钥将使用系统级加密存储（iOS Keychain / Android Keystore），绝不离开本机（D6）。',
   'wallet.creating': '创建中…',
   'wallet.create': '✨ 创建新钱包',
   'wallet.import': '🔑 导入助记词',
@@ -116,7 +132,8 @@ const zh = {
   'wallet.address': 'Cosmos 地址',
   'wallet.evmAddress': 'EVM 地址',
   'wallet.tokenBalance': '代币余额',
-  'wallet.rideTokenNote': '乘车奖励：每途经 1 站发放 0.01 UPTICK 到你的 EVM 钱包',
+  'wallet.rideTokenNote':
+    '乘车奖励：每途经 1 站发放 0.01 UPTICK 到你的 EVM 钱包',
   'wallet.rewardOk': '已发放 {n} UPTICK',
   'wallet.rewardFail': '发放失败：{msg}',
   'wallet.chainEvm': 'EVM',
@@ -170,7 +187,8 @@ const zh = {
   'settings.themeSystem': '跟随系统',
   'settings.themeDark': '深色',
   'settings.themeLight': '浅色',
-  'settings.footer': '定位数据仅用于行程识别与积分发放，可在本地关闭。详见隐私政策。',
+  'settings.footer':
+    '定位数据仅用于行程识别与积分发放，可在本地关闭。详见隐私政策。',
 
   // 路线规划
   'route.title': '路线规划',
@@ -272,7 +290,8 @@ const zh = {
   'help.q': 'Q：',
   'help.a': 'A：',
   'help.faq1q': '积分有什么用？',
-  'help.faq1a': '积分可按规则映射/兑换 Uptick Origin 的 Token 或 NFT，并参与空投（C4）。',
+  'help.faq1a':
+    '积分可按规则映射/兑换 Uptick Origin 的 Token 或 NFT，并参与空投（C4）。',
   'help.faq2q': '进站如何识别？',
   'help.faq2a': '进入地铁站地理围栏自动触发进站记录，也可手动开始行程（B1）。',
   'help.faq3q': '私钥安全吗？',
@@ -291,7 +310,8 @@ const zh = {
   // 服务层
   'svc.wallet.invalidMnemonic': '助记词无效',
   'svc.wallet.notFound': '未找到钱包，请先创建或导入',
-  'svc.wallet.rewardNoTreasury': '乘车奖励未配置发奖账户（rewardTreasuryKey 为空）',
+  'svc.wallet.rewardNoTreasury':
+    '乘车奖励未配置发奖账户（rewardTreasuryKey 为空）',
   'svc.trip.speedAnomaly': '检测到 {n} 个异常高速采样点（疑似虚拟位移）',
   'svc.trip.shortInterval': '站点 {a}→{b} 间隔过短',
   'svc.trip.gpsGap': '定位轨迹存在较长断点，无法验证连续性',
@@ -299,16 +319,19 @@ const zh = {
   'svc.auth.userName': '用户',
   'svc.auth.notLoggedIn': '未登录',
   'svc.loc.permTitle': '定位权限',
-  'svc.loc.permMsg': 'Metro 需要定位权限，以规划从你当前位置出发的路线，并实时显示你在地铁站的位置。',
+  'svc.loc.permMsg':
+    'Metro 需要定位权限，以规划从你当前位置出发的路线，并实时显示你在地铁站的位置。',
   'svc.loc.allow': '允许',
   'svc.loc.deny': '拒绝',
   'svc.loc.later': '稍后询问',
-  'svc.loc.neverAsk': '定位权限被永久拒绝，请在系统设置 → 应用 → Metro → 权限 中开启"位置信息"后重试',
+  'svc.loc.neverAsk':
+    '定位权限被永久拒绝，请在系统设置 → 应用 → Metro → 权限 中开启"位置信息"后重试',
   'svc.loc.notGranted': '定位权限未授予，请在系统设置中开启位置权限后重试',
   'svc.loc.disabled': '系统定位服务未开启，请先打开 GPS / 位置信息',
   'svc.loc.failed': '定位失败',
   'svc.loc.timeout': '定位超时，请到开阔处重试，或确认已开启精确位置',
-  'svc.loc.settings': '系统定位模式不满足要求，请在设置中打开「位置信息」并选择高精度',
+  'svc.loc.settings':
+    '系统定位模式不满足要求，请在设置中打开「位置信息」并选择高精度',
   'svc.loc.playServices': 'Google 定位服务不可用，已尝试系统定位仍失败',
   'svc.loc.unavailable': '无可用定位源，请打开 GPS 或网络定位后重试',
 };
@@ -321,6 +344,17 @@ const en: Record<TKey, string> = {
   'nav.points': 'Points',
   'nav.wallet': 'Wallet',
   'nav.me': 'Me',
+  'nav.rewards': 'Rewards',
+
+  // 奖励中心
+  'rewards.title': 'Rewards',
+  'rewards.subtitle': 'Earn points riding, win airdrops',
+  'rewards.pointsSub': 'Balance, level and badges',
+  'rewards.tasksSub': 'Daily & onboarding tasks',
+  'rewards.activitiesSub': 'Nearby metro events',
+  'rewards.airdropSub': 'Complete tasks for airdrops',
+  'rewards.rankSub': 'Rider leaderboard',
+  'rewards.enterWallet': 'View my wallet',
 
   'common.origin': 'Origin',
   'common.destination': 'Destination',
@@ -337,7 +371,8 @@ const en: Record<TKey, string> = {
 
   'trip.title': 'Ride Check-in',
   'trip.subtitle': 'Auto check-in on geofence entry, auto settle on exit',
-  'trip.startHint': 'Tap the button below to start manually; entering a station geofence will auto check you in (B1).',
+  'trip.startHint':
+    'Tap the button below to start manually; entering a station geofence will auto check you in (B1).',
   'trip.start': '🚇 Start trip',
   'trip.passedCount': 'Stations passed',
   'trip.startStation': 'From: {name}',
@@ -364,9 +399,11 @@ const en: Record<TKey, string> = {
   'trip.finishModal.min': 'min',
   'trip.finishModal.reward': 'Rewards',
   'trip.finishModal.points': 'pts',
-  'trip.finishModal.pointsDetail': 'Base {base} · Transfer {transfer} · Long {long}',
+  'trip.finishModal.pointsDetail':
+    'Base {base} · Transfer {transfer} · Long {long}',
   'trip.finishModal.ok': 'Awesome',
-  'trip.antiCheat': 'Anti-cheat on: station intervals primary; underground GPS gaps/jumps tolerated',
+  'trip.antiCheat':
+    'Anti-cheat on: station intervals primary; underground GPS gaps/jumps tolerated',
   'trip.history': 'Trip history ({n})',
   'trip.emptyHistory': 'No trips yet — take your first ride!',
   'trip.statusCompleted': 'Completed',
@@ -377,7 +414,8 @@ const en: Record<TKey, string> = {
   'trip.report': 'Trip report',
   'trip.reportStops': '{n} stops, {km} km',
   'trip.reportDuration': 'Duration {min} min',
-  'trip.reportPoints': 'Points earned: {total} (base {base} + transfer {transfer} + long-ride {long})',
+  'trip.reportPoints':
+    'Points earned: {total} (base {base} + transfer {transfer} + long-ride {long})',
   'trip.abnormalNote': '⚠ Abnormal: {reasons} (points not counted)',
 
   'points.title': 'Points',
@@ -405,7 +443,8 @@ const en: Record<TKey, string> = {
   'wallet.title': 'Uptick Wallet',
   'wallet.subtitleCreate': 'D1 Create or import a compatible wallet',
   'wallet.subtitleAssets': 'D3 Asset management',
-  'wallet.keychainNote': 'Private keys are stored with system-level encryption (iOS Keychain / Android Keystore) and never leave this device (D6).',
+  'wallet.keychainNote':
+    'Private keys are stored with system-level encryption (iOS Keychain / Android Keystore) and never leave this device (D6).',
   'wallet.creating': 'Creating…',
   'wallet.create': '✨ Create wallet',
   'wallet.import': '🔑 Import mnemonic',
@@ -417,7 +456,8 @@ const en: Record<TKey, string> = {
   'wallet.address': 'Cosmos address',
   'wallet.evmAddress': 'EVM address',
   'wallet.tokenBalance': 'Token balance',
-  'wallet.rideTokenNote': 'Ride reward: 0.01 UPTICK per station sent to your EVM wallet',
+  'wallet.rideTokenNote':
+    'Ride reward: 0.01 UPTICK per station sent to your EVM wallet',
   'wallet.rewardOk': 'Sent {n} UPTICK',
   'wallet.rewardFail': 'Reward failed: {msg}',
   'wallet.chainEvm': 'EVM',
@@ -444,7 +484,8 @@ const en: Record<TKey, string> = {
   'me.walletBound': '🔗 Wallet bound',
   'me.walletUnbound': 'No wallet bound',
   'me.inviteCode': 'Invite code (F3)',
-  'me.inviteHint': 'Friends sign up with this code and finish a first ride — both get rewards',
+  'me.inviteHint':
+    'Friends sign up with this code and finish a first ride — both get rewards',
   'me.logout': 'Log out',
   'me.menu.points': 'Points',
   'me.menu.wallet': 'My Wallet',
@@ -469,12 +510,15 @@ const en: Record<TKey, string> = {
   'settings.themeSystem': 'System',
   'settings.themeDark': 'Dark',
   'settings.themeLight': 'Light',
-  'settings.footer': 'Location data is only used for trip detection and points issuance, and can be disabled locally. See privacy policy.',
+  'settings.footer':
+    'Location data is only used for trip detection and points issuance, and can be disabled locally. See privacy policy.',
 
   'route.title': 'Route Planner',
-  'route.subtitle': 'Origin is your location; pick destination by typing or tapping the map',
+  'route.subtitle':
+    'Origin is your location; pick destination by typing or tapping the map',
   'route.fromLabel': 'Origin (current location)',
-  'route.locError': 'Unable to get location: {msg}. You can pick the origin manually.',
+  'route.locError':
+    'Unable to get location: {msg}. You can pick the origin manually.',
   'route.locErrorFallback': 'check location permission or GPS',
   'route.distanceToYou': '{d}m away',
   'route.walkText': '🚶 Walk to {name}: ~{d}m · ~{min} min',
@@ -503,8 +547,10 @@ const en: Record<TKey, string> = {
   'route.metricEta': 'ETA',
   'route.minutesShort': '{n}min',
   'route.startThis': '🚇 Start this trip',
-  'route.sameStation': 'Origin and destination are the same. Please change the destination.',
-  'route.waitHint': 'Wait for origin location, then type or tap a destination station.',
+  'route.sameStation':
+    'Origin and destination are the same. Please change the destination.',
+  'route.waitHint':
+    'Wait for origin location, then type or tap a destination station.',
   'route.browseStations': '🚉 Browse by line',
 
   // 车站线路浏览
@@ -516,12 +562,14 @@ const en: Record<TKey, string> = {
 
   'airdrop.title': 'Airdrops',
   'airdrop.subtitle': 'F Points-to-token fair airdrops',
-  'airdrop.needWallet': 'Please create or import an Uptick wallet in "My Wallet" first',
+  'airdrop.needWallet':
+    'Please create or import an Uptick wallet in "My Wallet" first',
   'airdrop.claimOk': 'Claimed! +{n} Token, tx: {tx}',
   'airdrop.claimFail': 'Claim failed: {msg}',
   'airdrop.eligible': 'Eligible',
   'airdrop.notEligible': 'Not eligible',
-  'airdrop.ruleLine': '{n} Token each · needs {p} points / {s} stops / {d} active days',
+  'airdrop.ruleLine':
+    '{n} Token each · needs {p} points / {s} stops / {d} active days',
   'airdrop.distributed': 'Distributed {a} / total {b} ({pct}%)',
   'airdrop.reasons': 'Not eligible: {reasons}',
   'airdrop.signing': 'Signing on-chain…',
@@ -541,10 +589,12 @@ const en: Record<TKey, string> = {
 
   'act.title': 'Nearby Activities',
   'act.subtitle': 'E Station-based offline activities & tasks',
-  'act.tooFar': 'About {d}m from the venue. Enter the geofence to check in (E3).',
+  'act.tooFar':
+    'About {d}m from the venue. Enter the geofence to check in (E3).',
   'act.checkinOk': 'Checked in! Earned {n} pts',
   'act.checkinToken': ' + {t} tokens',
-  'act.noLocation': 'Unable to get location. Please enable location permission.',
+  'act.noLocation':
+    'Unable to get location. Please enable location permission.',
   'act.merchant': 'Merchant: {name}',
   'act.coupon': ' · Coupon {c} (E5)',
   'act.reward': 'Reward: {n} pts',
@@ -565,15 +615,20 @@ const en: Record<TKey, string> = {
   'help.q': 'Q: ',
   'help.a': 'A: ',
   'help.faq1q': 'What are points for?',
-  'help.faq1a': 'Points can be mapped/exchanged to Uptick Origin tokens or NFTs per rules, and used in airdrops (C4).',
+  'help.faq1a':
+    'Points can be mapped/exchanged to Uptick Origin tokens or NFTs per rules, and used in airdrops (C4).',
   'help.faq2q': 'How is station entry detected?',
-  'help.faq2a': 'Entering a station geofence auto-triggers a check-in; you can also start a trip manually (B1).',
+  'help.faq2a':
+    'Entering a station geofence auto-triggers a check-in; you can also start a trip manually (B1).',
   'help.faq3q': 'Are private keys safe?',
-  'help.faq3a': 'Mnemonics/private keys are stored only on this device with system-level encryption and never leave it (D6).',
+  'help.faq3a':
+    'Mnemonics/private keys are stored only on this device with system-level encryption and never leave it (D6).',
   'help.faq4q': 'How does anti-cheat work?',
-  'help.faq4a': 'Anomaly detection combines trajectory continuity, speed, and station time deltas (B4).',
+  'help.faq4a':
+    'Anomaly detection combines trajectory continuity, speed, and station time deltas (B4).',
   'help.faq5q': 'Which chain is connected?',
-  'help.faq5a': 'Uptick Origin testnet by default, with a mainnet switch reserved (D5).',
+  'help.faq5a':
+    'Uptick Origin testnet by default, with a mainnet switch reserved (D5).',
   'help.feedback': 'Feedback',
   'help.feedbackPlaceholder': 'Describe your issue…',
   'help.submitted': 'Submitted ✓',
@@ -583,36 +638,56 @@ const en: Record<TKey, string> = {
 
   'svc.wallet.invalidMnemonic': 'Invalid mnemonic',
   'svc.wallet.notFound': 'No wallet found. Please create or import one first.',
-  'svc.wallet.rewardNoTreasury': 'Ride reward treasury not configured (rewardTreasuryKey empty)',
-  'svc.trip.speedAnomaly': '{n} abnormal high-speed samples detected (possible GPS spoofing)',
+  'svc.wallet.rewardNoTreasury':
+    'Ride reward treasury not configured (rewardTreasuryKey empty)',
+  'svc.trip.speedAnomaly':
+    '{n} abnormal high-speed samples detected (possible GPS spoofing)',
   'svc.trip.shortInterval': 'Interval between {a}→{b} too short',
-  'svc.trip.gpsGap': 'Long gap in location trajectory; continuity cannot be verified',
+  'svc.trip.gpsGap':
+    'Long gap in location trajectory; continuity cannot be verified',
   'svc.auth.guestName': 'Guest',
   'svc.auth.userName': 'User',
   'svc.auth.notLoggedIn': 'Not logged in',
   'svc.loc.permTitle': 'Location permission',
-  'svc.loc.permMsg': 'Metro needs location access to plan routes from your current position and show your position in metro stations.',
+  'svc.loc.permMsg':
+    'Metro needs location access to plan routes from your current position and show your position in metro stations.',
   'svc.loc.allow': 'Allow',
   'svc.loc.deny': 'Deny',
   'svc.loc.later': 'Ask later',
-  'svc.loc.neverAsk': 'Location permission permanently denied. Enable "Location" in Settings → Apps → Metro → Permissions and retry.',
-  'svc.loc.notGranted': 'Location permission not granted. Enable it in system settings and retry.',
-  'svc.loc.disabled': 'Location services are disabled. Please turn on GPS / Location.',
+  'svc.loc.neverAsk':
+    'Location permission permanently denied. Enable "Location" in Settings → Apps → Metro → Permissions and retry.',
+  'svc.loc.notGranted':
+    'Location permission not granted. Enable it in system settings and retry.',
+  'svc.loc.disabled':
+    'Location services are disabled. Please turn on GPS / Location.',
   'svc.loc.failed': 'Location failed',
-  'svc.loc.timeout': 'Location timed out. Try outdoors, or enable precise location.',
-  'svc.loc.settings': 'Location mode is insufficient. Enable Location and high accuracy.',
-  'svc.loc.playServices': 'Google Play location unavailable; system location also failed.',
-  'svc.loc.unavailable': 'No location provider. Enable GPS or network location and retry.',
+  'svc.loc.timeout':
+    'Location timed out. Try outdoors, or enable precise location.',
+  'svc.loc.settings':
+    'Location mode is insufficient. Enable Location and high accuracy.',
+  'svc.loc.playServices':
+    'Google Play location unavailable; system location also failed.',
+  'svc.loc.unavailable':
+    'No location provider. Enable GPS or network location and retry.',
 };
 
-const DICTS: Record<Lang, Record<TKey, string>> = {zh, en};
+const DICTS: Record<Lang, Record<TKey, string>> = { zh, en };
 
-function interpolate(tpl: string, params?: Record<string, string | number>): string {
+function interpolate(
+  tpl: string,
+  params?: Record<string, string | number>,
+): string {
   if (!params) return tpl;
-  return tpl.replace(/\{(\w+)\}/g, (m, k) => (params[k] !== undefined ? String(params[k]) : m));
+  return tpl.replace(/\{(\w+)\}/g, (m, k) =>
+    params[k] !== undefined ? String(params[k]) : m,
+  );
 }
 
-export function translate(lang: Lang, key: TKey, params?: Record<string, string | number>): string {
+export function translate(
+  lang: Lang,
+  key: TKey,
+  params?: Record<string, string | number>,
+): string {
   const dict = DICTS[lang] ?? zh;
   return interpolate(dict[key] ?? zh[key] ?? key, params);
 }
@@ -626,7 +701,8 @@ export function t(key: TKey, params?: Record<string, string | number>): string {
 export function useT() {
   const lang = useSettingsStore((s) => s.language);
   return useMemo(
-    () => (key: TKey, params?: Record<string, string | number>) => translate(lang, key, params),
+    () => (key: TKey, params?: Record<string, string | number>) =>
+      translate(lang, key, params),
     [lang],
   );
 }
