@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {
   Clipboard,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,15 +11,40 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {ChainEnv} from '@/types';
+import {UPTICK_CONFIG} from '@/config/app';
 import {useWalletStore} from '@/store/useWalletStore';
 import {ThemeColors, spacing, typography} from '@/theme/theme';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, HeroCard, IconBubble, ScreenHeader} from '@/components/common';
-import {useT} from '@/i18n';
+import {useT, TKey} from '@/i18n';
 
 function abbreviate(addr: string, head = 8, tail = 6) {
   if (!addr || addr.length <= head + tail) return addr;
   return `${addr.slice(0, head)}…${addr.slice(-tail)}`;
+}
+
+// 根据交易哈希前缀判断链类型，拼接对应区块浏览器的交易详情页地址。
+function buildTxExplorerUrl(hash: string, env: ChainEnv): string {
+  const cfg = UPTICK_CONFIG[env];
+  const base = hash.startsWith('0x') ? cfg.evmExplorer : cfg.explorer;
+  return `${base}/tx/${hash}`;
+}
+
+// 点击交易记录，在系统浏览器中打开区块浏览器查看链上详情。
+async function openTxExplorer(hash: string, env: ChainEnv) {
+  try {
+    await Linking.openURL(buildTxExplorerUrl(hash, env));
+  } catch {
+    // 忽略：用户取消或无可用浏览器
+  }
+}
+
+// 交易类型映射为友好文案，未知类型回退为原始值。
+function txTypeLabel(
+  type: string,
+  t: (key: TKey, params?: Record<string, any>, fallback?: string) => string,
+): string {
+  return t(`wallet.txType.${type}` as TKey, {}, type);
 }
 
 export function WalletScreen() {
@@ -252,16 +278,32 @@ export function WalletScreen() {
           {txs.length === 0 ? (
             <Text style={{color: colors.textFaint, fontSize: typography.sub}}>{t('wallet.noTx')}</Text>
           ) : (
-            txs.map((tx) => (
-              <Text key={tx.hash} style={{color: colors.textSub, fontSize: typography.sub, paddingVertical: 2}}>
-                {tx.type} · {tx.status} · {new Date(tx.time).toLocaleDateString()}
-              </Text>
+            txs.map((tx, i) => (
+              <Pressable
+                key={tx.hash}
+                onPress={() => openTxExplorer(tx.hash, meta.env)}
+                accessibilityLabel={t('wallet.viewExplorer')}
+                style={({pressed}) => [
+                  styles.txRow,
+                  i === txs.length - 1 && {borderBottomWidth: 0},
+                  {opacity: pressed ? 0.6 : 1},
+                ]}>
+                <View style={{flex: 1}}>
+                  <Text style={{color: colors.text, fontWeight: '600', fontSize: typography.sub}}>
+                    {txTypeLabel(tx.type, t)}
+                  </Text>
+                  <Text style={{color: colors.textFaint, fontSize: typography.caption, marginTop: 2}}>
+                    {tx.status} · {new Date(tx.time).toLocaleDateString()} · {abbreviate(tx.hash, 8, 6)}
+                  </Text>
+                </View>
+                <Text style={{color: colors.primary, fontSize: 16, fontWeight: '700', marginLeft: spacing.sm}}>↗</Text>
+              </Pressable>
             ))
           )}
         </Card>
 
-        <Button title={t('wallet.gotoAirdrop')} onPress={() => navigation.navigate('Airdrop')} />
-        <Button title={t('wallet.sign')} variant="soft" onPress={() => navigation.navigate('Me')} />
+        <Button title={t('wallet.gotoAirdrop')} onPress={() => navigation.navigate('RewardsTab', {screen: 'Airdrop'})} />
+        <Button title={t('wallet.sign')} variant="soft" onPress={() => navigation.navigate('MeTab', {screen: 'Me'})} />
       </ScrollView>
     </View>
   );
@@ -333,6 +375,14 @@ function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
     headRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
     cardTitle: {fontWeight: '700', color: colors.text, marginBottom: spacing.sm, fontSize: typography.h2},
+    txRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      gap: spacing.sm,
+    },
     envPill: {
       flexDirection: 'row',
       alignItems: 'center',

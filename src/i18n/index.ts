@@ -161,6 +161,11 @@ const zh = {
   'wallet.noTx': '暂无交易',
   'wallet.gotoAirdrop': '🎁 前往空投领取',
   'wallet.sign': '✍️ 链上签名授权（D4 演示）',
+  'wallet.viewExplorer': '在区块浏览器中查看该交易',
+  'wallet.txType.transfer': '转账',
+  'wallet.txType.send': '发送代币',
+  'wallet.txType.sign': '签名授权',
+  'wallet.txType.airdrop_claim': '空投领取',
 
   // 我的
   'me.title': '我的',
@@ -500,6 +505,11 @@ const en: Record<TKey, string> = {
   'wallet.noTx': 'No transactions',
   'wallet.gotoAirdrop': '🎁 Go to airdrops',
   'wallet.sign': '✍️ On-chain signing (D4 demo)',
+  'wallet.viewExplorer': 'View this transaction on the block explorer',
+  'wallet.txType.transfer': 'Transfer',
+  'wallet.txType.send': 'Send token',
+  'wallet.txType.sign': 'Sign',
+  'wallet.txType.airdrop_claim': 'Airdrop claim',
 
   'me.title': 'Me',
   'me.notLoggedIn': 'Not logged in',

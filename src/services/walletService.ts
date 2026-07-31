@@ -138,7 +138,45 @@ export async function queryNfts(
   return [];
 }
 
-export async function queryTxs(_address: string, _env: ChainEnv): Promise<ChainTx[]> {
+// 从 Uptick EVM 区块浏览器（Blockscout 风格）实时抓取某地址的交易记录。
+const EVM_TXS_LIMIT = 25;
+
+async function fetchEvmTxs(evmAddress: string, env: ChainEnv): Promise<ChainTx[]> {
+  try {
+    const base = UPTICK_CONFIG[env].evmExplorer;
+    const url = `${base}/api?module=account&action=txlist&address=${evmAddress}&sort=desc&page=1&offset=${EVM_TXS_LIMIT}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    if (!data || data.status !== '1' || !Array.isArray(data.result)) return [];
+    const lower = evmAddress.toLowerCase();
+    return data.result.map((r: Record<string, any>): ChainTx => {
+      const to = (r.to || '').toLowerCase();
+      const isReceive = to === lower;
+      const ok =
+        r.isError === '0' && (r.txreceipt_status === undefined || r.txreceipt_status === '1');
+      let amount = '';
+      try {
+        amount = (BigInt(r.value || '0') / 10n ** 18n).toString();
+      } catch {
+        amount = r.value || '';
+      }
+      return {
+        hash: r.hash,
+        type: isReceive ? 'transfer' : 'send',
+        amount,
+        denom: UPTICK_CONFIG[env].evmSymbol,
+        time: Number(r.timeStamp) * 1000,
+        status: ok ? 'success' : 'fail',
+      };
+    });
+  } catch {
+    // 网络异常时静默回退为空，避免展示吓人的错误
+    return [];
+  }
+}
+
+export async function queryTxs(address: string, env: ChainEnv): Promise<ChainTx[]> {
   if (WALLET_MOCK) {
     return [
       {
@@ -151,6 +189,11 @@ export async function queryTxs(_address: string, _env: ChainEnv): Promise<ChainT
       },
     ];
   }
+  // EVM 地址：从区块浏览器实时抓取交易记录
+  if (address.startsWith('0x')) {
+    return fetchEvmTxs(address, env);
+  }
+  // Cosmos 地址暂未接入浏览器 API
   return [];
 }
 

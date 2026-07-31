@@ -76,7 +76,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     const [balances, nfts, txs] = await Promise.all([
       wallet.queryBalances(meta.address, meta.env, meta.evmAddress),
       wallet.queryNfts(meta.address, meta.env),
-      wallet.queryTxs(meta.address, meta.env),
+      wallet.queryTxs(meta.evmAddress ?? meta.address, meta.env),
     ]);
     set({balances, nfts, txs});
   },

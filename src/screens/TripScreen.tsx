@@ -217,7 +217,7 @@ export function TripScreen() {
           })
         )}
 
-        <Button title={t('trip.viewPoints')} variant="ghost" onPress={() => navigation.navigate('Points')} />
+        <Button title={t('trip.viewPoints')} variant="ghost" onPress={() => navigation.navigate('RewardsTab', {screen: 'Points'})} />
       </ScrollView>
     </View>
   );
