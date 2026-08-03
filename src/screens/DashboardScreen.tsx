@@ -2,10 +2,9 @@ import React, {useEffect, useState} from 'react';
 import {ScrollView, StyleSheet, Text, View, ActivityIndicator} from 'react-native';
 import {fetchMetrics, fetchPushes} from '@/services/opsService';
 import {MetricPoint, PushItem} from '@/data/opsSample';
-import {spacing, typography} from '@/theme/theme';
-import {ThemeColors, useTheme, useThemedStyles} from '@/theme/ThemeProvider';
+import {spacing, typography, ThemeColors} from '@/theme/theme';
+import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Card, ScreenHeader, SectionTitle} from '@/components/common';
-import {useT} from '@/i18n';
 
 const STATUS_LABEL: Record<string, string> = {
   sent: '已发送',
@@ -14,7 +13,6 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function DashboardScreen() {
-  const t = useT();
   const {colors} = useTheme();
   const styles = useThemedStyles(makeStyles);
   const [metrics, setMetrics] = useState<MetricPoint[]>([]);

@@ -8,6 +8,7 @@ import {useT} from '@/i18n';
 import {MapScreen} from '@/screens/MapScreen';
 import {RoutePlanScreen} from '@/screens/RoutePlanScreen';
 import {StationInfoScreen} from '@/screens/StationInfoScreen';
+import {StationDetailScreen} from '@/screens/StationDetailScreen';
 import {TripScreen} from '@/screens/TripScreen';
 import {PointsScreen} from '@/screens/PointsScreen';
 import {WalletScreen} from '@/screens/WalletScreen';
@@ -34,6 +35,7 @@ function MapStackScreen() {
       <MapStack.Screen name="Map" component={MapScreen} />
       <MapStack.Screen name="RoutePlan" component={RoutePlanScreen} />
       <MapStack.Screen name="StationInfo" component={StationInfoScreen} />
+      <MapStack.Screen name="StationDetail" component={StationDetailScreen} />
     </MapStack.Navigator>
   );
 }

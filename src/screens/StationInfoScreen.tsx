@@ -6,7 +6,6 @@ import {getCityGraph} from '@/data/metroData';
 import {useSettingsStore} from '@/store/useSettingsStore';
 import {ThemeColors, spacing, typography} from '@/theme/theme';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
-import {Chip} from '@/components/common';
 import {useT} from '@/i18n';
 import {Station} from '@/types';
 
@@ -88,18 +87,54 @@ export function StationInfoScreen() {
           keyExtractor={(s) => s.id}
           contentContainerStyle={styles.list}
           renderItem={({item}) => (
-            <Pressable
-              onPress={() => chooseStation(item)}
-              style={({pressed}) => [styles.stationRow, pressed && {backgroundColor: colors.pressed}]}>
-              <View style={[styles.dot, {backgroundColor: selectedLine.color}]} />
-              <View style={{flex: 1, marginLeft: spacing.md}}>
-                <Text style={styles.stationName}>{item.name}</Text>
-                {item.isTransfer && (
-                  <Text style={styles.transferTag}>{t('common.transfer')}</Text>
-                )}
+            <View style={styles.stationRow}>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate('StationDetail', {
+                    stationId: item.id,
+                    lineId: selectedLine.id,
+                    cityId: graph.city.id,
+                  })
+                }
+                style={({pressed}) => [
+                  styles.stationRowMain,
+                  pressed && {backgroundColor: colors.pressed},
+                ]}>
+                <View style={[styles.dot, {backgroundColor: selectedLine.color}]} />
+                <View style={{flex: 1, marginLeft: spacing.md}}>
+                  <Text style={styles.stationName}>{item.name}</Text>
+                  {item.isTransfer && (
+                    <Text style={styles.transferTag}>{t('common.transfer')}</Text>
+                  )}
+                </View>
+              </Pressable>
+              <View style={styles.stationActions}>
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate('StationDetail', {
+                      stationId: item.id,
+                      lineId: selectedLine.id,
+                      cityId: graph.city.id,
+                    })
+                  }
+                  hitSlop={6}
+                  style={({pressed}) => [styles.actionBtn, {opacity: pressed ? 0.7 : 1}]}>
+                  <Text style={styles.actionBtnText}>{t('stationInfo.detail')}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => chooseStation(item)}
+                  hitSlop={6}
+                  style={({pressed}) => [
+                    styles.actionBtn,
+                    styles.actionBtnPrimary,
+                    {opacity: pressed ? 0.7 : 1},
+                  ]}>
+                  <Text style={[styles.actionBtnText, {color: colors.white}]}>
+                    {t('stationInfo.setDestination')}
+                  </Text>
+                </Pressable>
               </View>
-              <Chip text={t('stationInfo.setDestination')} color={colors.primary} />
-            </Pressable>
+            </View>
           )}
         />
       ) : (
@@ -164,6 +199,33 @@ function makeStyles(colors: ThemeColors) {
       paddingVertical: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+    },
+    stationRowMain: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    stationActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    actionBtn: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.elevated,
+    },
+    actionBtnPrimary: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    actionBtnText: {
+      fontSize: typography.caption,
+      color: colors.text,
+      fontWeight: '600',
     },
     dot: {
       width: 12,

@@ -1,6 +1,5 @@
 import {
   Activity,
-  AirdropRule,
   Badge,
   TaskDef,
   UserLevel,

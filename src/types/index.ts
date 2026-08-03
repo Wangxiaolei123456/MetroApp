@@ -28,6 +28,11 @@ export interface Station {
   lineIds: string[];
   /** 是否为换乘站 */
   isTransfer: boolean;
+  /** 首末班车时间（HH:mm），按上下行拆分 */
+  firstTrain?: {up?: string; down?: string};
+  lastTrain?: {up?: string; down?: string};
+  /** 出入口列表 */
+  exits?: {id: string; name: string; location?: GeoPoint}[];
 }
 
 /** 线路 */

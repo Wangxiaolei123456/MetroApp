@@ -58,7 +58,7 @@ export function WalletScreen() {
   const t = useT();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { meta, balances, nfts, txs, lastReward, switchEnv, refresh, logout } =
+  const { meta, balances, nfts, txs, lastReward, switchEnv, refresh } =
     useWalletStore();
   const [copied, setCopied] = useState<string | null>(null);
 
