@@ -13,6 +13,7 @@ import {useNavigation} from '@react-navigation/native';
 import {ChainEnv} from '@/types';
 import {UPTICK_CONFIG} from '@/config/app';
 import {useWalletStore} from '@/store/useWalletStore';
+import {loginWithEmail, sendEmailCode} from '@/services/web3Auth';
 import {ThemeColors, spacing, typography} from '@/theme/theme';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, HeroCard, IconBubble, ScreenHeader} from '@/components/common';
@@ -52,11 +53,14 @@ export function WalletScreen() {
   const t = useT();
   const {colors} = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const {meta, balances, nfts, txs, loading, error, lastReward, create, import: importWallet, switchEnv, refresh} =
+  const {meta, balances, nfts, txs, error, lastReward, create, switchEnv, refresh, logout} =
     useWalletStore();
-  const [mnemonic, setMnemonic] = useState('');
-  const [showImport, setShowImport] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [emailStep, setEmailStep] = useState<'input' | 'code'>('input');
+  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | 'email' | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [formError, setFormError] = useState('');
 
   const copyAddr = (value: string, key: string) => {
     Clipboard.setString(value);
@@ -65,6 +69,37 @@ export function WalletScreen() {
   };
 
   if (!meta) {
+    const onSocial = async (provider: 'google' | 'apple') => {
+      setSocialLoading(provider);
+      try {
+        await create(provider, 'testnet');
+      } finally {
+        setSocialLoading(null);
+      }
+    };
+    const onSendCode = async () => {
+      setSocialLoading('email');
+      try {
+        await sendEmailCode(email.trim());
+        setEmailStep('code');
+        setFormError('');
+      } catch (e) {
+        setFormError((e as Error).message);
+      } finally {
+        setSocialLoading(null);
+      }
+    };
+    const onEmailLogin = async () => {
+      setSocialLoading('email');
+      try {
+        await loginWithEmail(email.trim(), emailCode.trim());
+        setEmailStep('input');
+      } catch (e) {
+        setFormError((e as Error).message);
+      } finally {
+        setSocialLoading(null);
+      }
+    };
     return (
       <View style={{flex: 1, backgroundColor: colors.background}}>
         <ScreenHeader title={t('wallet.title')} subtitle={t('wallet.subtitleCreate')} />
@@ -81,9 +116,9 @@ export function WalletScreen() {
                   fontSize: typography.sub,
                   lineHeight: 19,
                 }}>
-                {t('wallet.keychainNote')}
+                {t('wallet.socialLoginNote')}
               </Text>
-              {error && (
+              {formError || error ? (
                 <Text
                   style={{
                     color: colors.danger,
@@ -91,44 +126,60 @@ export function WalletScreen() {
                     marginBottom: spacing.sm,
                     textAlign: 'center',
                   }}>
-                  {error}
+                  {formError || error}
                 </Text>
-              )}
+              ) : null}
             </View>
             <Button
-              title={loading ? t('wallet.creating') : t('wallet.create')}
-              loading={loading}
-              onPress={() => create('testnet')}
+              title={socialLoading === 'google' ? t('wallet.socialLogging') : t('wallet.loginGoogle')}
+              loading={socialLoading === 'google'}
+              onPress={() => onSocial('google')}
               style={{marginHorizontal: 0}}
             />
             <Button
-              title={t('wallet.import')}
+              title={socialLoading === 'apple' ? t('wallet.socialLogging') : t('wallet.loginApple')}
+              loading={socialLoading === 'apple'}
               variant="soft"
-              onPress={() => setShowImport((v) => !v)}
+              onPress={() => onSocial('apple')}
               style={{marginHorizontal: 0, marginBottom: 0}}
             />
-            {showImport && (
-              <View style={{marginTop: spacing.md}}>
+            {emailStep === 'input' ? (
+              <>
                 <TextInput
-                  placeholder={t('wallet.mnemonicPlaceholder')}
+                  placeholder={t('wallet.emailPlaceholder')}
                   placeholderTextColor={colors.textFaint}
-                  value={mnemonic}
-                  onChangeText={setMnemonic}
-                  multiline
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
                   style={styles.input}
                 />
-                {error && (
-                  <Text style={{color: colors.danger, fontSize: typography.sub, marginBottom: spacing.sm}}>
-                    {error}
-                  </Text>
-                )}
                 <Button
-                  title={t('wallet.importBtn')}
-                  loading={loading}
-                  onPress={() => importWallet(mnemonic, 'testnet')}
+                  title={socialLoading === 'email' ? t('wallet.socialLogging') : t('wallet.emailSendCode')}
+                  loading={socialLoading === 'email'}
+                  variant="soft"
+                  onPress={onSendCode}
                   style={{marginHorizontal: 0, marginBottom: 0}}
                 />
-              </View>
+              </>
+            ) : (
+              <>
+                <TextInput
+                  placeholder={t('wallet.emailCodePlaceholder')}
+                  placeholderTextColor={colors.textFaint}
+                  value={emailCode}
+                  onChangeText={setEmailCode}
+                  keyboardType="number-pad"
+                  style={styles.input}
+                />
+                <Button
+                  title={t('wallet.emailLoginBtn')}
+                  loading={socialLoading === 'email'}
+                  variant="soft"
+                  onPress={onEmailLogin}
+                  style={{marginHorizontal: 0, marginBottom: 0}}
+                />
+              </>
             )}
           </Card>
         </ScrollView>
@@ -304,6 +355,7 @@ export function WalletScreen() {
 
         <Button title={t('wallet.gotoAirdrop')} onPress={() => navigation.navigate('RewardsTab', {screen: 'Airdrop'})} />
         <Button title={t('wallet.sign')} variant="soft" onPress={() => navigation.navigate('MeTab', {screen: 'Me'})} />
+        <Button title={t('wallet.logout')} variant="ghost" onPress={() => logout()} />
       </ScrollView>
     </View>
   );

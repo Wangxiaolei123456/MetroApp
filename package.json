@@ -16,6 +16,8 @@
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/native-stack": "^6.9.26",
+    "@toruslabs/react-native-web-browser": "^1.1.0",
+    "@uptickjs/webauth-sdk": "^1.0.0",
     "bip39": "^3.1.0",
     "buffer": "^6.0.3",
     "ethers": "^6.13.4",

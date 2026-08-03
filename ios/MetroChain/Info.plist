@@ -48,5 +48,17 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<!-- Uptick WebAuth 社交登录回调：uptickcardible://auth -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>uptickcardible</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

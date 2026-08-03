@@ -140,8 +140,18 @@ const zh = {
 
   // 钱包
   'wallet.title': 'Uptick 钱包',
-  'wallet.subtitleCreate': 'D1 创建或导入兼容钱包',
+  'wallet.subtitleCreate': '使用社交账户一键登录，自动生成你的专属区块链钱包',
   'wallet.subtitleAssets': 'D3 资产管理',
+  'wallet.socialLoginNote':
+    '登录即代表同意服务条款，我们将通过 Uptick 为你生成去中心化钱包地址（无需助记词）',
+  'wallet.loginGoogle': '使用 Google 登录',
+  'wallet.loginApple': '使用 Apple 登录',
+  'wallet.socialLogging': '登录中…',
+  'wallet.emailPlaceholder': '请输入邮箱地址',
+  'wallet.emailSendCode': '发送验证码',
+  'wallet.emailCodePlaceholder': '请输入邮箱验证码',
+  'wallet.emailLoginBtn': '使用邮箱登录',
+  'wallet.logout': '退出登录',
   'wallet.keychainNote':
     '私钥将使用系统级加密存储（iOS Keychain / Android Keystore），绝不离开本机（D6）。',
   'wallet.creating': '创建中…',
@@ -499,8 +509,19 @@ const en: Record<TKey, string> = {
   'points.source.airdrop_exchange': 'Exchange',
 
   'wallet.title': 'Uptick Wallet',
-  'wallet.subtitleCreate': 'D1 Create or import a compatible wallet',
+  'wallet.subtitleCreate':
+    'Sign in with a social account and we generate your dedicated blockchain wallet',
   'wallet.subtitleAssets': 'D3 Asset management',
+  'wallet.socialLoginNote':
+    'By signing in you agree to the terms. We generate a decentralized wallet address for you via Uptick (no seed phrase needed).',
+  'wallet.loginGoogle': 'Continue with Google',
+  'wallet.loginApple': 'Continue with Apple',
+  'wallet.socialLogging': 'Signing in…',
+  'wallet.emailPlaceholder': 'Enter your email',
+  'wallet.emailSendCode': 'Send code',
+  'wallet.emailCodePlaceholder': 'Enter the email code',
+  'wallet.emailLoginBtn': 'Continue with Email',
+  'wallet.logout': 'Log out',
   'wallet.keychainNote':
     'Private keys are stored with system-level encryption (iOS Keychain / Android Keystore) and never leave this device (D6).',
   'wallet.creating': 'Creating…',

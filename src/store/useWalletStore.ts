@@ -2,8 +2,8 @@ import {create} from 'zustand';
 import {ChainEnv, ChainTx, NftAsset, TokenBalance, WalletAccount} from '@/types';
 import * as wallet from '@/services/walletService';
 import {sendEvmNativeReward} from '@/services/evmWallet';
-import {secureStore, STORAGE_KEYS} from '@/services/storage';
 import {APP_CONFIG} from '@/config/app';
+import {loginWithSocial, logoutWeb3Auth, SocialProvider} from '@/services/web3Auth';
 import {useUserStore} from './useUserStore';
 import {useTaskStore} from './useTaskStore';
 
@@ -17,10 +17,14 @@ interface WalletState {
   /** 最近一次乘车发奖结果（成功哈希或失败信息） */
   lastReward: {hash?: string; error?: string; amount?: number} | null;
   init: () => Promise<void>;
-  create: (env?: ChainEnv) => Promise<void>;
+  /** 社交登录创建钱包（Web3Auth / Uptick webauth） */
+  create: (provider: SocialProvider, env?: ChainEnv) => Promise<void>;
+  /** @deprecated 历史兼容：助记词导入，UI 已移除入口 */
   import: (mnemonic: string, env?: ChainEnv) => Promise<void>;
   switchEnv: (env: ChainEnv) => Promise<void>;
   refresh: () => Promise<void>;
+  /** 退出社交登录并清除钱包元数据 */
+  logout: () => Promise<void>;
   /** 行程完成：按站数向用户 EVM 钱包直发 UPTICK */
   creditRideTokens: (stationCount: number) => Promise<void>;
 }
@@ -38,13 +42,28 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     set({meta});
     if (meta) await get().refresh();
   },
-  async create(env = 'testnet') {
+  async create(provider, env = 'testnet') {
     set({loading: true, error: null});
     try {
-      const meta = await wallet.createWallet(env);
+      const res = await loginWithSocial(provider, env);
+      const meta: WalletAccount = {
+        address: res.cosmosAddress,
+        evmAddress: res.evmAddress,
+        env,
+        createdAt: Date.now(),
+        kind: 'social',
+        socialProvider: provider,
+      };
+      await wallet.saveWalletMeta(meta);
       set({meta});
       await useUserStore.getState().bindWallet(meta.address);
       useTaskStore.getState().tickMetric('binds', 1);
+      const user = useUserStore.getState();
+      await user.update({
+        ...(res.email ? {email: res.email} : {}),
+        ...(res.name ? {name: res.name} : {}),
+        ...(res.profileImage ? {avatar: res.profileImage} : {}),
+      });
       await get().refresh();
     } catch (e) {
       set({error: (e as Error).message});
@@ -52,6 +71,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       set({loading: false});
     }
   },
+  /** @deprecated 保留内部调用，UI 不再暴露助记词导入 */
   async import(mnemonic, env = 'testnet') {
     set({loading: true, error: null});
     try {
@@ -81,11 +101,21 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     set({balances, nfts, txs});
   },
   async switchEnv(env) {
-    const mnemonic = await secureStore.getSecret(STORAGE_KEYS.walletSecret);
-    if (!mnemonic) return;
-    const meta = await wallet.importWallet(mnemonic, env);
-    set({meta});
+    const meta = get().meta;
+    if (!meta) return;
+    const next: WalletAccount = {...meta, env};
+    await wallet.saveWalletMeta(next);
+    set({meta: next});
     await get().refresh();
+  },
+  async logout() {
+    try {
+      await logoutWeb3Auth();
+    } catch {
+      // 忽略登出异常，仍清理本地状态
+    }
+    await wallet.clearWalletMeta();
+    set({meta: null, balances: [], nfts: [], txs: [], lastReward: null, error: null});
   },
   async creditRideTokens(stationCount) {
     if (!stationCount || stationCount <= 0) return;

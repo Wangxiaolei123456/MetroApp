@@ -203,6 +203,10 @@ export interface WalletAccount {
   encryptedKeystore?: string;
   env: ChainEnv;
   createdAt: number;
+  /** 钱包来源：社交登录 or 助记词（历史兼容） */
+  kind?: 'social' | 'mnemonic';
+  /** 社交登录提供方 */
+  socialProvider?: 'google' | 'apple' | 'email';
 }
 
 export interface TokenBalance {

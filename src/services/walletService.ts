@@ -97,6 +97,16 @@ export async function loadWalletMeta(): Promise<WalletAccount | null> {
   }
 }
 
+/** 社交登录：仅保存钱包元数据（地址来自第三方，无本地私钥） */
+export async function saveWalletMeta(meta: WalletAccount): Promise<void> {
+  await storage.set(STORAGE_KEYS.walletMeta, meta);
+}
+
+/** 社交登录：清除钱包元数据（保留 secureStore 中的助记词历史记录，如有） */
+export async function clearWalletMeta(): Promise<void> {
+  await storage.remove(STORAGE_KEYS.walletMeta);
+}
+
 /** 加载完整钱包（用于签名，私钥仅存在于内存） */
 export async function loadSigningWallet(): Promise<DirectSecp256k1HdWallet> {
   const mnemonic = await secureStore.getSecret(STORAGE_KEYS.walletSecret);
