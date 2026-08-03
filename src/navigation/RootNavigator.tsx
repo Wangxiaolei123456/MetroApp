@@ -20,11 +20,13 @@ import {RankScreen} from '@/screens/RankScreen';
 import {HelpScreen} from '@/screens/HelpScreen';
 import {RewardsHome} from '@/screens/RewardsHome';
 import {DashboardScreen} from '@/screens/DashboardScreen';
+import {LoginScreen} from '@/screens/LoginScreen';
 
 const Tab = createBottomTabNavigator();
 const MapStack = createNativeStackNavigator();
 const MeStack = createNativeStackNavigator();
 const RewardsStack = createNativeStackNavigator();
+const WalletStack = createNativeStackNavigator();
 
 function MapStackScreen() {
   return (
@@ -58,7 +60,18 @@ function MeStackScreen() {
       <MeStack.Screen name="Me" component={MeScreen} />
       <MeStack.Screen name="Settings" component={SettingsScreen} />
       <MeStack.Screen name="Help" component={HelpScreen} />
+      <MeStack.Screen name="Login" component={LoginScreen} />
     </MeStack.Navigator>
+  );
+}
+
+// 钱包 Tab：未登录时跳到 LoginScreen 引导社交登录，已登录后展示钱包资产。
+function WalletTabScreen() {
+  return (
+    <WalletStack.Navigator screenOptions={{headerShown: false}}>
+      <WalletStack.Screen name="Wallet" component={WalletScreen} />
+      <WalletStack.Screen name="Login" component={LoginScreen} />
+    </WalletStack.Navigator>
   );
 }
 
@@ -67,7 +80,7 @@ const TABS = [
   {name: 'MapTab', component: MapStackScreen, labelKey: 'nav.map' as const, icon: '🗺'},
   {name: 'Trip', component: TripScreen, labelKey: 'nav.trip' as const, icon: '🚇'},
   {name: 'RewardsTab', component: RewardsTabScreen, labelKey: 'nav.rewards' as const, icon: '🎁'},
-  {name: 'Wallet', component: WalletScreen, labelKey: 'nav.wallet' as const, icon: '👛'},
+  {name: 'Wallet', component: WalletTabScreen, labelKey: 'nav.wallet' as const, icon: '👛'},
   {name: 'MeTab', component: MeStackScreen, labelKey: 'nav.me' as const, icon: '👤'},
 ];
 

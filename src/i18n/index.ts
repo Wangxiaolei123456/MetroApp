@@ -152,6 +152,7 @@ const zh = {
   'wallet.emailCodePlaceholder': '请输入邮箱验证码',
   'wallet.emailLoginBtn': '使用邮箱登录',
   'wallet.logout': '退出登录',
+  'wallet.gotoLogin': '去登录',
   'wallet.keychainNote':
     '私钥将使用系统级加密存储（iOS Keychain / Android Keystore），绝不离开本机（D6）。',
   'wallet.creating': '创建中…',
@@ -189,10 +190,14 @@ const zh = {
   'me.title': '我的',
   'me.notLoggedIn': '未登录',
   'me.loginHint': '登录以同步行程、积分与钱包',
-  'me.guestLogin': '游客登录',
-  'me.phoneLogin': '手机号登录',
+  'me.gotoLogin': '登录',
   'me.guestMode': '游客模式',
   'me.loggedIn': '已登录',
+
+  // 第三方登录选择页
+  'login.title': '登录',
+  'login.headline': '使用社交账户创建钱包',
+  'login.subtitle': '选择任一社交账户完成登录，我们将为你自动生成一个区块链钱包地址。',
   'me.rideStats': '乘坐 {stops} 站 / {rides} 程',
   'me.statRides': '累计乘车（程）',
   'me.statStops': '累计站数（站）',
@@ -522,6 +527,7 @@ const en: Record<TKey, string> = {
   'wallet.emailCodePlaceholder': 'Enter the email code',
   'wallet.emailLoginBtn': 'Continue with Email',
   'wallet.logout': 'Log out',
+  'wallet.gotoLogin': 'Sign in',
   'wallet.keychainNote':
     'Private keys are stored with system-level encryption (iOS Keychain / Android Keystore) and never leave this device (D6).',
   'wallet.creating': 'Creating…',
@@ -558,10 +564,14 @@ const en: Record<TKey, string> = {
   'me.title': 'Me',
   'me.notLoggedIn': 'Not logged in',
   'me.loginHint': 'Log in to sync trips, points and wallet',
-  'me.guestLogin': 'Guest login',
-  'me.phoneLogin': 'Phone login',
+  'me.gotoLogin': 'Sign in',
   'me.guestMode': 'Guest mode',
   'me.loggedIn': 'Logged in',
+
+  // Third-party sign-in screen
+  'login.title': 'Sign in',
+  'login.headline': 'Create a wallet with a social account',
+  'login.subtitle': 'Pick a social account to sign in and we will generate a blockchain wallet address for you.',
   'me.rideStats': '{stops} stops / {rides} rides',
   'me.statRides': 'Total rides',
   'me.statStops': 'Total stops',

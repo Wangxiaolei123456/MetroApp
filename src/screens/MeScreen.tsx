@@ -21,7 +21,6 @@ export function MeScreen() {
   const {colors} = useTheme();
   const styles = useThemedStyles(makeStyles);
   const profile = useUserStore((s) => s.profile);
-  const login = useUserStore((s) => s.login);
   const logout = useUserStore((s) => s.logout);
   const inviteCode = (profile?.id ?? 'METRO').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
   const menu = getMenu(colors);
@@ -40,20 +39,10 @@ export function MeScreen() {
                 {t('me.loginHint')}
               </Text>
               <Button
-                title={t('me.guestLogin')}
+                title={t('me.gotoLogin')}
                 variant="go"
-                onPress={() => login('guest')}
+                onPress={() => navigation.navigate('Login')}
                 style={{marginHorizontal: 0}}
-              />
-              <Button
-                title={t('me.phoneLogin')}
-                variant="ghost"
-                onPress={() => login('phone', {phone: '138****0000', name: '手机用户'})}
-                style={{
-                  marginHorizontal: 0,
-                  marginBottom: 0,
-                  borderColor: 'rgba(255,255,255,0.35)',
-                }}
               />
             </>
           ) : (

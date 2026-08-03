@@ -41,3 +41,9 @@ export async function updateProfile(patch: Partial<UserProfile>): Promise<UserPr
   await storage.set(STORAGE_KEYS.user, next);
   return next;
 }
+
+/** 直接写入完整 profile（社交登录场景下用于首次创建用户身份） */
+export async function setProfile(profile: UserProfile): Promise<UserProfile> {
+  await storage.set(STORAGE_KEYS.user, profile);
+  return profile;
+}

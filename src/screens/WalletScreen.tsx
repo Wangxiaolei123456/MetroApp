@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   Clipboard,
   Linking,
@@ -6,18 +6,23 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import {ChainEnv} from '@/types';
-import {UPTICK_CONFIG} from '@/config/app';
-import {useWalletStore} from '@/store/useWalletStore';
-import {loginWithEmail, sendEmailCode} from '@/services/web3Auth';
-import {ThemeColors, spacing, typography} from '@/theme/theme';
-import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
-import {Button, Card, Chip, HeroCard, IconBubble, ScreenHeader} from '@/components/common';
-import {useT, TKey} from '@/i18n';
+import { useNavigation } from '@react-navigation/native';
+import { ChainEnv } from '@/types';
+import { UPTICK_CONFIG } from '@/config/app';
+import { useWalletStore } from '@/store/useWalletStore';
+import { ThemeColors, spacing, typography } from '@/theme/theme';
+import { useTheme, useThemedStyles } from '@/theme/ThemeProvider';
+import {
+  Button,
+  Card,
+  Chip,
+  HeroCard,
+  IconBubble,
+  ScreenHeader,
+} from '@/components/common';
+import { useT, TKey } from '@/i18n';
 
 function abbreviate(addr: string, head = 8, tail = 6) {
   if (!addr || addr.length <= head + tail) return addr;
@@ -51,16 +56,11 @@ function txTypeLabel(
 export function WalletScreen() {
   const navigation = useNavigation<any>();
   const t = useT();
-  const {colors} = useTheme();
+  const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const {meta, balances, nfts, txs, error, lastReward, create, switchEnv, refresh, logout} =
+  const { meta, balances, nfts, txs, lastReward, switchEnv, refresh, logout } =
     useWalletStore();
-  const [email, setEmail] = useState('');
-  const [emailCode, setEmailCode] = useState('');
-  const [emailStep, setEmailStep] = useState<'input' | 'code'>('input');
-  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | 'email' | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const [formError, setFormError] = useState('');
 
   const copyAddr = (value: string, key: string) => {
     Clipboard.setString(value);
@@ -69,43 +69,15 @@ export function WalletScreen() {
   };
 
   if (!meta) {
-    const onSocial = async (provider: 'google' | 'apple') => {
-      setSocialLoading(provider);
-      try {
-        await create(provider, 'testnet');
-      } finally {
-        setSocialLoading(null);
-      }
-    };
-    const onSendCode = async () => {
-      setSocialLoading('email');
-      try {
-        await sendEmailCode(email.trim());
-        setEmailStep('code');
-        setFormError('');
-      } catch (e) {
-        setFormError((e as Error).message);
-      } finally {
-        setSocialLoading(null);
-      }
-    };
-    const onEmailLogin = async () => {
-      setSocialLoading('email');
-      try {
-        await loginWithEmail(email.trim(), emailCode.trim());
-        setEmailStep('input');
-      } catch (e) {
-        setFormError((e as Error).message);
-      } finally {
-        setSocialLoading(null);
-      }
-    };
     return (
-      <View style={{flex: 1, backgroundColor: colors.background}}>
-        <ScreenHeader title={t('wallet.title')} subtitle={t('wallet.subtitleCreate')} />
-        <ScrollView>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <ScreenHeader
+          title={t('wallet.title')}
+          subtitle={t('wallet.subtitleCreate')}
+        />
+        <ScrollView contentContainerStyle={{ paddingVertical: spacing.md }}>
           <Card>
-            <View style={{alignItems: 'center', paddingVertical: spacing.md}}>
+            <View style={{ alignItems: 'center', paddingVertical: spacing.md }}>
               <IconBubble icon="👛" size={64} />
               <Text
                 style={{
@@ -115,72 +87,16 @@ export function WalletScreen() {
                   textAlign: 'center',
                   fontSize: typography.sub,
                   lineHeight: 19,
-                }}>
+                }}
+              >
                 {t('wallet.socialLoginNote')}
               </Text>
-              {formError || error ? (
-                <Text
-                  style={{
-                    color: colors.danger,
-                    fontSize: typography.sub,
-                    marginBottom: spacing.sm,
-                    textAlign: 'center',
-                  }}>
-                  {formError || error}
-                </Text>
-              ) : null}
+              <Button
+                title={t('wallet.gotoLogin')}
+                onPress={() => navigation.navigate('Login')}
+                style={{ marginHorizontal: 0 }}
+              />
             </View>
-            <Button
-              title={socialLoading === 'google' ? t('wallet.socialLogging') : t('wallet.loginGoogle')}
-              loading={socialLoading === 'google'}
-              onPress={() => onSocial('google')}
-              style={{marginHorizontal: 0}}
-            />
-            <Button
-              title={socialLoading === 'apple' ? t('wallet.socialLogging') : t('wallet.loginApple')}
-              loading={socialLoading === 'apple'}
-              variant="soft"
-              onPress={() => onSocial('apple')}
-              style={{marginHorizontal: 0, marginBottom: 0}}
-            />
-            {emailStep === 'input' ? (
-              <>
-                <TextInput
-                  placeholder={t('wallet.emailPlaceholder')}
-                  placeholderTextColor={colors.textFaint}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  style={styles.input}
-                />
-                <Button
-                  title={socialLoading === 'email' ? t('wallet.socialLogging') : t('wallet.emailSendCode')}
-                  loading={socialLoading === 'email'}
-                  variant="soft"
-                  onPress={onSendCode}
-                  style={{marginHorizontal: 0, marginBottom: 0}}
-                />
-              </>
-            ) : (
-              <>
-                <TextInput
-                  placeholder={t('wallet.emailCodePlaceholder')}
-                  placeholderTextColor={colors.textFaint}
-                  value={emailCode}
-                  onChangeText={setEmailCode}
-                  keyboardType="number-pad"
-                  style={styles.input}
-                />
-                <Button
-                  title={t('wallet.emailLoginBtn')}
-                  loading={socialLoading === 'email'}
-                  variant="soft"
-                  onPress={onEmailLogin}
-                  style={{marginHorizontal: 0, marginBottom: 0}}
-                />
-              </>
-            )}
           </Card>
         </ScrollView>
       </View>
@@ -190,8 +106,11 @@ export function WalletScreen() {
   const evmBal = balances.find((b) => b.chain === 'evm');
 
   return (
-    <View style={{flex: 1, backgroundColor: colors.background}}>
-      <ScreenHeader title={t('wallet.title')} subtitle={t('wallet.subtitleAssets')} />
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScreenHeader
+        title={t('wallet.title')}
+        subtitle={t('wallet.subtitleAssets')}
+      />
       <ScrollView>
         <HeroCard>
           <View style={styles.headRow}>
@@ -199,18 +118,36 @@ export function WalletScreen() {
               <View
                 style={[
                   styles.envDot,
-                  {backgroundColor: meta.env === 'testnet' ? colors.warning : colors.success},
+                  {
+                    backgroundColor:
+                      meta.env === 'testnet' ? colors.warning : colors.success,
+                  },
                 ]}
               />
-              <Text style={{color: colors.white, fontSize: typography.caption, fontWeight: '700'}}>
-                {meta.env === 'testnet' ? t('wallet.testnet') : t('wallet.mainnet')}
+              <Text
+                style={{
+                  color: colors.white,
+                  fontSize: typography.caption,
+                  fontWeight: '700',
+                }}
+              >
+                {meta.env === 'testnet'
+                  ? t('wallet.testnet')
+                  : t('wallet.mainnet')}
               </Text>
             </View>
             <Pressable
               onPress={() => refresh()}
               hitSlop={8}
-              style={({pressed}) => ({opacity: pressed ? 0.6 : 1})}>
-              <Text style={{color: colors.white, fontSize: typography.sub, fontWeight: '600'}}>
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <Text
+                style={{
+                  color: colors.white,
+                  fontSize: typography.sub,
+                  fontWeight: '600',
+                }}
+              >
                 ⟳ {t('wallet.refresh')}
               </Text>
             </Pressable>
@@ -224,7 +161,8 @@ export function WalletScreen() {
               marginTop: spacing.lg,
               letterSpacing: 0.4,
               textTransform: 'uppercase',
-            }}>
+            }}
+          >
             {t('wallet.chainEvm')} · {evmBal?.symbol ?? 'UPTICK'}
           </Text>
           <Text
@@ -235,7 +173,8 @@ export function WalletScreen() {
               letterSpacing: -0.5,
               marginTop: 2,
               fontVariant: ['tabular-nums'],
-            }}>
+            }}
+          >
             {evmBal?.amount ?? '—'}
           </Text>
 
@@ -245,7 +184,9 @@ export function WalletScreen() {
               value={meta.evmAddress}
               copied={copied === 'evm'}
               onCopy={() => copyAddr(meta.evmAddress!, 'evm')}
-              copyLabel={copied === 'evm' ? t('wallet.copied') : t('wallet.copy')}
+              copyLabel={
+                copied === 'evm' ? t('wallet.copied') : t('wallet.copy')
+              }
             />
           )}
           <AddressRow
@@ -253,14 +194,18 @@ export function WalletScreen() {
             value={meta.address}
             copied={copied === 'cosmos'}
             onCopy={() => copyAddr(meta.address, 'cosmos')}
-            copyLabel={copied === 'cosmos' ? t('wallet.copied') : t('wallet.copy')}
+            copyLabel={
+              copied === 'cosmos' ? t('wallet.copied') : t('wallet.copy')
+            }
           />
 
           <View style={styles.switchRow}>
             {(['testnet', 'mainnet'] as ChainEnv[]).map((e) => (
               <PressableChip
                 key={e}
-                text={e === 'testnet' ? t('wallet.testnet') : t('wallet.mainnet')}
+                text={
+                  e === 'testnet' ? t('wallet.testnet') : t('wallet.mainnet')
+                }
                 active={meta.env === e}
                 onPress={async () => {
                   if (e === meta.env) return;
@@ -273,38 +218,87 @@ export function WalletScreen() {
 
         <Card>
           <Text style={styles.cardTitle}>{t('wallet.tokenBalance')}</Text>
-          <Text style={{color: colors.textFaint, fontSize: typography.caption, marginBottom: spacing.sm}}>
+          <Text
+            style={{
+              color: colors.textFaint,
+              fontSize: typography.caption,
+              marginBottom: spacing.sm,
+            }}
+          >
             {t('wallet.rideTokenNote')}
           </Text>
           {lastReward?.hash && lastReward.amount != null && (
-            <Text style={{color: colors.success, fontSize: typography.caption, marginBottom: spacing.sm}}>
-              {t('wallet.rewardOk', {n: lastReward.amount})} · {abbreviate(lastReward.hash, 10, 8)}
+            <Text
+              style={{
+                color: colors.success,
+                fontSize: typography.caption,
+                marginBottom: spacing.sm,
+              }}
+            >
+              {t('wallet.rewardOk', { n: lastReward.amount })} ·{' '}
+              {abbreviate(lastReward.hash, 10, 8)}
             </Text>
           )}
           {lastReward?.error && (
-            <Text style={{color: colors.danger, fontSize: typography.caption, marginBottom: spacing.sm}}>
-              {t('wallet.rewardFail', {msg: lastReward.error})}
+            <Text
+              style={{
+                color: colors.danger,
+                fontSize: typography.caption,
+                marginBottom: spacing.sm,
+              }}
+            >
+              {t('wallet.rewardFail', { msg: lastReward.error })}
             </Text>
           )}
           {balances.map((b, i) => (
             <View
               key={b.denom + (b.chain ?? '') + b.symbol}
-              style={[styles.balRow, i === balances.length - 1 && {borderBottomWidth: 0}]}>
-              <View style={{flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1}}>
+              style={[
+                styles.balRow,
+                i === balances.length - 1 && { borderBottomWidth: 0 },
+              ]}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  flex: 1,
+                }}
+              >
                 <View style={styles.tokenBubble}>
-                  <Text style={{fontSize: 13, fontWeight: '800', color: colors.primary}}>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '800',
+                      color: colors.primary,
+                    }}
+                  >
                     {b.symbol.slice(0, 1)}
                   </Text>
                 </View>
-                <View style={{flex: 1}}>
-                  <Text style={{color: colors.text, fontWeight: '600'}}>{b.symbol}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '600' }}>
+                    {b.symbol}
+                  </Text>
                   <Chip
-                    text={b.chain === 'evm' ? t('wallet.chainEvm') : t('wallet.chainCosmos')}
+                    text={
+                      b.chain === 'evm'
+                        ? t('wallet.chainEvm')
+                        : t('wallet.chainCosmos')
+                    }
                     color={b.chain === 'evm' ? colors.accent : colors.primary}
                   />
                 </View>
               </View>
-              <Text style={{fontWeight: '800', color: colors.text, fontSize: 16, fontVariant: ['tabular-nums']}}>
+              <Text
+                style={{
+                  fontWeight: '800',
+                  color: colors.text,
+                  fontSize: 16,
+                  fontVariant: ['tabular-nums'],
+                }}
+              >
                 {b.amount}
               </Text>
             </View>
@@ -314,10 +308,15 @@ export function WalletScreen() {
         <Card>
           <Text style={styles.cardTitle}>{t('wallet.nfts')}</Text>
           {nfts.length === 0 ? (
-            <Text style={{color: colors.textFaint, fontSize: typography.sub}}>{t('wallet.noNft')}</Text>
+            <Text style={{ color: colors.textFaint, fontSize: typography.sub }}>
+              {t('wallet.noNft')}
+            </Text>
           ) : (
             nfts.map((n) => (
-              <Text key={n.id} style={{color: colors.text, paddingVertical: 3}}>
+              <Text
+                key={n.id}
+                style={{ color: colors.text, paddingVertical: 3 }}
+              >
                 🖼 {n.name} · {n.collection} #{n.tokenId}
               </Text>
             ))
@@ -327,35 +326,65 @@ export function WalletScreen() {
         <Card>
           <Text style={styles.cardTitle}>{t('wallet.txs')}</Text>
           {txs.length === 0 ? (
-            <Text style={{color: colors.textFaint, fontSize: typography.sub}}>{t('wallet.noTx')}</Text>
+            <Text style={{ color: colors.textFaint, fontSize: typography.sub }}>
+              {t('wallet.noTx')}
+            </Text>
           ) : (
             txs.map((tx, i) => (
               <Pressable
                 key={tx.hash}
                 onPress={() => openTxExplorer(tx.hash, meta.env)}
                 accessibilityLabel={t('wallet.viewExplorer')}
-                style={({pressed}) => [
+                style={({ pressed }) => [
                   styles.txRow,
-                  i === txs.length - 1 && {borderBottomWidth: 0},
-                  {opacity: pressed ? 0.6 : 1},
-                ]}>
-                <View style={{flex: 1}}>
-                  <Text style={{color: colors.text, fontWeight: '600', fontSize: typography.sub}}>
+                  i === txs.length - 1 && { borderBottomWidth: 0 },
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      color: colors.text,
+                      fontWeight: '600',
+                      fontSize: typography.sub,
+                    }}
+                  >
                     {txTypeLabel(tx.type, t)}
                   </Text>
-                  <Text style={{color: colors.textFaint, fontSize: typography.caption, marginTop: 2}}>
-                    {tx.status} · {new Date(tx.time).toLocaleDateString()} · {abbreviate(tx.hash, 8, 6)}
+                  <Text
+                    style={{
+                      color: colors.textFaint,
+                      fontSize: typography.caption,
+                      marginTop: 2,
+                    }}
+                  >
+                    {tx.status} · {new Date(tx.time).toLocaleDateString()} ·{' '}
+                    {abbreviate(tx.hash, 8, 6)}
                   </Text>
                 </View>
-                <Text style={{color: colors.primary, fontSize: 16, fontWeight: '700', marginLeft: spacing.sm}}>↗</Text>
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 16,
+                    fontWeight: '700',
+                    marginLeft: spacing.sm,
+                  }}
+                >
+                  ↗
+                </Text>
               </Pressable>
             ))
           )}
         </Card>
 
-        <Button title={t('wallet.gotoAirdrop')} onPress={() => navigation.navigate('RewardsTab', {screen: 'Airdrop'})} />
-        <Button title={t('wallet.sign')} variant="soft" onPress={() => navigation.navigate('MeTab', {screen: 'Me'})} />
-        <Button title={t('wallet.logout')} variant="ghost" onPress={() => logout()} />
+        <Button
+          title={t('wallet.gotoAirdrop')}
+          onPress={() =>
+            navigation.navigate('RewardsTab', { screen: 'Airdrop' })
+          }
+        />
+        {/* <Button title={t('wallet.sign')} variant="soft" onPress={() => navigation.navigate('MeTab', {screen: 'Me'})} />
+        <Button title={t('wallet.logout')} variant="ghost" onPress={() => logout()} /> */}
       </ScrollView>
     </View>
   );
@@ -374,27 +403,54 @@ function AddressRow({
   onCopy: () => void;
   copyLabel: string;
 }) {
-  const {colors} = useTheme();
+  const { colors } = useTheme();
   return (
-    <View style={{marginTop: spacing.md}}>
-      <Text style={{fontSize: typography.caption, color: 'rgba(255,255,255,0.7)'}}>{label}</Text>
-      <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: spacing.sm}}>
+    <View style={{ marginTop: spacing.md }}>
+      <Text
+        style={{ fontSize: typography.caption, color: 'rgba(255,255,255,0.7)' }}
+      >
+        {label}
+      </Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginTop: 4,
+          gap: spacing.sm,
+        }}
+      >
         <Text
-          style={{flex: 1, fontWeight: '700', color: colors.white, fontSize: typography.sub, lineHeight: 19}}
-          numberOfLines={1}>
+          style={{
+            flex: 1,
+            fontWeight: '700',
+            color: colors.white,
+            fontSize: typography.sub,
+            lineHeight: 19,
+          }}
+          numberOfLines={1}
+        >
           {abbreviate(value, 10, 8)}
         </Text>
         <Pressable
           onPress={onCopy}
           hitSlop={8}
-          style={({pressed}) => ({
+          style={({ pressed }) => ({
             paddingHorizontal: 10,
             paddingVertical: 4,
             borderRadius: 999,
-            backgroundColor: copied ? 'rgba(0,194,129,0.35)' : 'rgba(255,255,255,0.16)',
+            backgroundColor: copied
+              ? 'rgba(0,194,129,0.35)'
+              : 'rgba(255,255,255,0.16)',
             opacity: pressed ? 0.7 : 1,
-          })}>
-          <Text style={{color: colors.white, fontSize: typography.caption, fontWeight: '700'}}>
+          })}
+        >
+          <Text
+            style={{
+              color: colors.white,
+              fontSize: typography.caption,
+              fontWeight: '700',
+            }}
+          >
             {copyLabel}
           </Text>
         </Pressable>
@@ -403,20 +459,35 @@ function AddressRow({
   );
 }
 
-function PressableChip({text, active, onPress}: {text: string; active: boolean; onPress: () => void}) {
-  const {colors} = useTheme();
+function PressableChip({
+  text,
+  active,
+  onPress,
+}: {
+  text: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   return (
     <Pressable
       onPress={onPress}
-      style={({pressed}) => [
+      style={({ pressed }) => [
         styles.chip,
         {
           backgroundColor: active ? colors.white : 'rgba(255,255,255,0.14)',
           opacity: pressed ? 0.8 : 1,
         },
-      ]}>
-      <Text style={{color: active ? colors.primary : colors.white, fontSize: typography.sub, fontWeight: '700'}}>
+      ]}
+    >
+      <Text
+        style={{
+          color: active ? colors.primary : colors.white,
+          fontSize: typography.sub,
+          fontWeight: '700',
+        }}
+      >
         {text}
       </Text>
     </Pressable>
@@ -425,8 +496,17 @@ function PressableChip({text, active, onPress}: {text: string; active: boolean; 
 
 function makeStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    headRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
-    cardTitle: {fontWeight: '700', color: colors.text, marginBottom: spacing.sm, fontSize: typography.h2},
+    headRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    cardTitle: {
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: spacing.sm,
+      fontSize: typography.h2,
+    },
     txRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -444,20 +524,13 @@ function makeStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.md,
       paddingVertical: 5,
     },
-    envDot: {width: 8, height: 8, borderRadius: 4},
-    input: {
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 12,
-      padding: spacing.md,
-      color: colors.text,
-      minHeight: 80,
-      textAlignVertical: 'top',
-      marginBottom: spacing.sm,
-      backgroundColor: colors.background,
+    envDot: { width: 8, height: 8, borderRadius: 4 },
+    switchRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+    chip: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: 7,
+      borderRadius: 999,
     },
-    switchRow: {flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg},
-    chip: {paddingHorizontal: spacing.lg, paddingVertical: 7, borderRadius: 999},
     balRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',

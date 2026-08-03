@@ -1,6 +1,7 @@
 import {create} from 'zustand';
-import {ChainEnv, ChainTx, NftAsset, TokenBalance, WalletAccount} from '@/types';
+import {AuthProvider, ChainEnv, ChainTx, NftAsset, TokenBalance, UserProfile, WalletAccount} from '@/types';
 import * as wallet from '@/services/walletService';
+import * as auth from '@/services/authService';
 import {sendEvmNativeReward} from '@/services/evmWallet';
 import {APP_CONFIG} from '@/config/app';
 import {loginWithSocial, logoutWeb3Auth, SocialProvider} from '@/services/web3Auth';
@@ -56,14 +57,24 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       };
       await wallet.saveWalletMeta(meta);
       set({meta});
-      await useUserStore.getState().bindWallet(meta.address);
-      useTaskStore.getState().tickMetric('binds', 1);
+      // 社交登录即创建本地用户身份：用 email 兜底名字，确保「我的」页立即显示已登录
       const user = useUserStore.getState();
-      await user.update({
+      const emailName = res.email ? res.email.split('@')[0] : '';
+      const profile: UserProfile = {
+        id: `u_${Date.now()}`,
+        name: res.name || emailName || 'Metro 用户',
+        provider: (provider === 'apple' ? 'email' : provider) as AuthProvider,
         ...(res.email ? {email: res.email} : {}),
-        ...(res.name ? {name: res.name} : {}),
         ...(res.profileImage ? {avatar: res.profileImage} : {}),
-      });
+        walletAddress: meta.address,
+        totalStops: 0,
+        totalRides: 0,
+        createdAt: Date.now(),
+      };
+      await auth.setProfile(profile);
+      useUserStore.setState({profile});
+      useTaskStore.getState().tickMetric('binds', 1);
+      await user.bindWallet(meta.address);
       await get().refresh();
     } catch (e) {
       set({error: (e as Error).message});
