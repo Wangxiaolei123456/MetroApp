@@ -1,6 +1,6 @@
 import {AirdropRule} from '@/types';
 import {signPayload} from './walletService';
-import {SAMPLE_AIRDROPS} from '@/data/mockData';
+import {SAMPLE_AIRDROPS} from '@/data/opsSample';
 
 /** F1 空投资格：积分门槛 / 站数 / 活跃天数 */
 export function isEligible(
@@ -24,8 +24,9 @@ export interface AirdropEligibility {
 
 export function checkAll(
   ctx: {pointsBalance: number; totalStops: number; activeDays: number},
+  rules: AirdropRule[] = SAMPLE_AIRDROPS,
 ): AirdropEligibility[] {
-  return SAMPLE_AIRDROPS.map((rule) => {
+  return rules.map((rule) => {
     const reasons: string[] = [];
     if (rule.status !== 'active') reasons.push('活动未开启');
     if (ctx.pointsBalance < rule.minPoints) reasons.push(`积分不足（需 ${rule.minPoints}）`);

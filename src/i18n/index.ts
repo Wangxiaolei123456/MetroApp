@@ -25,6 +25,8 @@ const zh = {
   'rewards.activitiesSub': '附近地铁活动与福利',
   'rewards.airdropSub': '完成任务瓜分空投',
   'rewards.rankSub': '积分排行榜',
+  'rewards.dashboard': '运营看板',
+  'rewards.dashboardSub': '实时指标与推送概览',
   'rewards.enterWallet': '查看我的钱包',
 
   // 首次引导
@@ -387,6 +389,8 @@ const en: Record<TKey, string> = {
   'rewards.activitiesSub': 'Nearby metro events',
   'rewards.airdropSub': 'Complete tasks for airdrops',
   'rewards.rankSub': 'Rider leaderboard',
+  'rewards.dashboard': 'Ops Dashboard',
+  'rewards.dashboardSub': 'Live metrics & push overview',
   'rewards.enterWallet': 'View my wallet',
 
   // 首次引导

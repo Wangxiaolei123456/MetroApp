@@ -134,36 +134,6 @@ export const TASK_DEFS: TaskDef[] = [
   },
 ];
 
-// ===== 空投规则 =====
-export const SAMPLE_AIRDROPS: AirdropRule[] = [
-  {
-    id: 'air1',
-    name: '首发乘车空投',
-    totalAmount: 100000,
-    distributed: 12000,
-    minPoints: 100,
-    minStops: 10,
-    minActiveDays: 1,
-    perUserAmount: 50,
-    startAt: Date.now() - 86400000,
-    endAt: Date.now() + 30 * 86400000,
-    status: 'active',
-  },
-  {
-    id: 'air2',
-    name: '邀请裂变空投',
-    totalAmount: 50000,
-    distributed: 3000,
-    minPoints: 0,
-    minStops: 0,
-    minActiveDays: 0,
-    perUserAmount: 20,
-    startAt: Date.now() - 86400000,
-    endAt: Date.now() + 60 * 86400000,
-    status: 'active',
-  },
-];
-
 // ===== 排行榜示例 =====
 export const SAMPLE_RANK_STOPS: {userId: string; name: string; value: number}[] = [
   {userId: 'u_001', name: '地铁侠', value: 432},

@@ -30,6 +30,7 @@ export function RewardsHome() {
     {target: 'Activities', labelKey: 'me.menu.activities', subKey: 'rewards.activitiesSub', icon: '📍', colorKey: 'warning'},
     {target: 'Airdrop', labelKey: 'me.menu.airdrop', subKey: 'rewards.airdropSub', icon: '🎁', colorKey: 'accent'},
     {target: 'Rank', labelKey: 'me.menu.rank', subKey: 'rewards.rankSub', icon: '🏆', colorKey: 'bronze'},
+    {target: 'Dashboard', labelKey: 'rewards.dashboard', subKey: 'rewards.dashboardSub', icon: '📊', colorKey: 'accent'},
   ];
 
   return (

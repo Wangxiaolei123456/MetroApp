@@ -19,6 +19,7 @@ import {ActivitiesScreen} from '@/screens/ActivitiesScreen';
 import {RankScreen} from '@/screens/RankScreen';
 import {HelpScreen} from '@/screens/HelpScreen';
 import {RewardsHome} from '@/screens/RewardsHome';
+import {DashboardScreen} from '@/screens/DashboardScreen';
 
 const Tab = createBottomTabNavigator();
 const MapStack = createNativeStackNavigator();
@@ -45,6 +46,7 @@ function RewardsTabScreen() {
       <RewardsStack.Screen name="Activities" component={ActivitiesScreen} />
       <RewardsStack.Screen name="Airdrop" component={AirdropScreen} />
       <RewardsStack.Screen name="Rank" component={RankScreen} />
+      <RewardsStack.Screen name="Dashboard" component={DashboardScreen} />
     </RewardsStack.Navigator>
   );
 }

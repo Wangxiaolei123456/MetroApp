@@ -1,8 +1,9 @@
-import React, {useState} from 'react';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {ScrollView, StyleSheet, Text, View, ActivityIndicator} from 'react-native';
 import {Activity} from '@/types';
 import {getCityGraph} from '@/data/metroData';
 import {useActivityStore} from '@/store/useActivityStore';
+import {fetchActivities} from '@/services/opsService';
 import {getCurrentLocation} from '@/services/location';
 import {distanceTo} from '@/utils/geo';
 import {spacing, typography} from '@/theme/theme';
@@ -12,12 +13,27 @@ import {useSettingsStore} from '@/store/useSettingsStore';
 import {useT} from '@/i18n';
 
 export function ActivitiesScreen() {
-  const {activities, enrolledIds, checkedInIds, enroll, checkin} = useActivityStore();
+  const {enrolledIds, checkedInIds, enroll, checkin} = useActivityStore();
   const t = useT();
   const {colors} = useTheme();
   const cityId = useSettingsStore((s) => s.cityId);
   const graph = getCityGraph(cityId);
+  // H2 活动：从后端拉取，失败回落本地种子
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetchActivities(cityId)
+      .then((list) => alive && setActivities(list))
+      .catch(() => {})
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [cityId]);
 
   const handleCheckin = async (act: Activity) => {
     try {
@@ -45,6 +61,11 @@ export function ActivitiesScreen() {
           <Card style={{backgroundColor: colors.primarySoft}}>
             <Text style={{color: colors.primary, fontWeight: '600'}}>{msg}</Text>
           </Card>
+        )}
+        {loading && (
+          <View style={{padding: spacing.xl, alignItems: 'center'}}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
         )}
         {activities.map((act) => {
           const enrolled = enrolledIds.includes(act.id);

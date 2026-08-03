@@ -878,3 +878,38 @@ export const SUPPORTED_CITIES: {id: string; name: string; nameEn: string}[] = [
   {id: 'demo', name: '上海', nameEn: 'Shanghai'},
   {id: 'hk', name: '香港', nameEn: 'Hong Kong'},
 ];
+
+// ===== 后端接管：优先从运营后端拉取线网，失败回退本地（由 metro-admin 管理） =====
+import {METRO_API_BASE} from '@/config/env';
+
+/**
+ * 从后端拉取指定城市的线网图，并写回本地缓存（CITIES）。
+ * 返回 MetroGraph；若后端未配置或拉取失败，返回本地兜底数据。
+ */
+export async function fetchCityGraph(cityId: string): Promise<MetroGraph> {
+  const fallback = CITIES[cityId] ?? shanghaiGraph;
+  if (!METRO_API_BASE) {
+    console.warn(`[MetroApp][metroData] metroApiBase 未配置，线网回落本地: ${cityId}`);
+    return fallback;
+  }
+  const url = `${METRO_API_BASE}/api/metro/graph?cityId=${encodeURIComponent(cityId)}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`[MetroApp][metroData] 线网接口返回 ${res.status}，回落本地: ${url}`);
+      return fallback;
+    }
+    const g = (await res.json()) as MetroGraph;
+    if (!g || !g.stations || g.stations.length === 0) {
+      console.warn(`[MetroApp][metroData] 线网返回空，回落本地: ${cityId}`);
+      return fallback;
+    }
+    console.log(`[MetroApp][metroData] 线网拉取成功(线上): ${cityId}, ${g.stations.length} 站`);
+    // 写回本地缓存，后续同步 getCityGraph 也能拿到最新数据
+    CITIES[cityId] = g;
+    return g;
+  } catch (e) {
+    console.warn(`[MetroApp][metroData] 线网请求失败(网络不可达?)，回落本地: ${url} | ${(e as Error).message}`);
+    return fallback;
+  }
+}

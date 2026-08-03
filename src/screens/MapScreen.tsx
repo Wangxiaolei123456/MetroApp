@@ -1,10 +1,10 @@
-import React, {useCallback, useRef, useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import MapView, {Marker, Polyline, PROVIDER_DEFAULT} from 'react-native-maps';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {Platform, StyleSheet, Text, View} from 'react-native';
+import MapView, {Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT} from 'react-native-maps';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {GeoPoint, Station} from '@/types';
-import {getCityGraph} from '@/data/metroData';
+import {GeoPoint, MetroGraph, Station} from '@/types';
+import {getCityGraph, fetchCityGraph} from '@/data/metroData';
 import {watchLocation} from '@/services/location';
 import {findEnclosingStation, findNearestStation} from '@/services/geofence';
 import {usePlanStore} from '@/store/usePlanStore';
@@ -21,7 +21,7 @@ export function MapScreen() {
   const {colors, isDark} = useTheme();
   const styles = useThemedStyles(makeStyles);
   const cityId = useSettingsStore((s) => s.cityId);
-  const graph = getCityGraph(cityId);
+  const [graph, setGraph] = useState<MetroGraph>(() => getCityGraph(cityId));
   const [loc, setLoc] = useState<GeoPoint>(graph.city.center);
   const [here, setHere] = useState<Station | null>(null);
   const mapRef = useRef<MapView>(null);
@@ -29,6 +29,22 @@ export function MapScreen() {
   const planRef = useRef(plan);
   planRef.current = plan;
   const lastFollowAt = useRef(0);
+
+  // 优先从后端拉取最新线网（由 metro-admin 管理）；接口未配置/不可达时回落本地兜底
+  useEffect(() => {
+    let alive = true;
+    fetchCityGraph(cityId)
+      .then((g) => {
+        console.log('000000000')
+        if (alive) setGraph(g);
+      })
+      .catch(() => {
+        if (alive) setGraph(getCityGraph(cityId));
+      });
+    return () => {
+      alive = false;
+    };
+  }, [cityId]);
 
   // 每次回到地图页重新订阅定位，保证规划后当前位置持续刷新
   useFocusEffect(
@@ -62,7 +78,9 @@ export function MapScreen() {
     <View style={{flex: 1, backgroundColor: colors.background}}>
       <MapView
         ref={mapRef}
-        provider={PROVIDER_DEFAULT}
+        // Android 接入了 Google Maps SDK，用 PROVIDER_GOOGLE；
+        // iOS 工程未接入 Google Maps SDK，回退到原生 Apple 地图（PROVIDER_DEFAULT）。
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
         key={`${cityId}-${isDark}`}
         style={StyleSheet.absoluteFill}
         customMapStyle={isDark ? DARK_MAP_STYLE : undefined}

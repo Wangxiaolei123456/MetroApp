@@ -1,10 +1,12 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {usePointsStore, selectPointsStats} from '@/store/usePointsStore';
 import {useUserStore} from '@/store/useUserStore';
 import {useWalletStore} from '@/store/useWalletStore';
 import {checkAll, claimAirdrop} from '@/services/airdropService';
+import {fetchAirdropRules} from '@/services/opsService';
+import {SAMPLE_AIRDROPS} from '@/data/opsSample';
 import {ThemeColors, spacing, typography} from '@/theme/theme';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, Card, Chip, ProgressBar, ScreenHeader} from '@/components/common';
@@ -20,14 +22,24 @@ export function AirdropScreen() {
   const walletMeta = useWalletStore((s) => s.meta);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  // H4 空投规则：从后端拉取，失败回落本地种子
+  const [rules, setRules] = useState(SAMPLE_AIRDROPS);
+
+  useEffect(() => {
+    let alive = true;
+    fetchAirdropRules().then((r) => alive && setRules(r));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const activeDays = profile
     ? Math.max(1, Math.round((Date.now() - profile.createdAt) / 86400000))
     : 1;
 
   const eligibility = useMemo(
-    () => checkAll({pointsBalance: stats.balance, totalStops: profile?.totalStops ?? 0, activeDays}),
-    [stats.balance, profile?.totalStops, activeDays],
+    () => checkAll({pointsBalance: stats.balance, totalStops: profile?.totalStops ?? 0, activeDays}, rules),
+    [stats.balance, profile?.totalStops, activeDays, rules],
   );
 
   const handleClaim = async (ruleId: string) => {

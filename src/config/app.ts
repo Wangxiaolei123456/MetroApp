@@ -1,4 +1,5 @@
 import { ChainEnv } from '@/types';
+import { METRO_API_BASE } from './env';
 
 // ===== 应用级配置（集中管理，便于后台下发/替换） =====
 
@@ -57,6 +58,12 @@ export const APP_CONFIG = {
    */
   rewardTreasuryKey:
     '0x779fdb593268870a70532240e4c97cc3e6c99f0846a366de866558e5c4c54290',
+
+  /**
+   * H2–H6 运营后端地址（activity/airdrop/rank/metrics/pushes）。
+   * 取自 src/config/env.ts 的 METRO_API_BASE，缺省为 ''（回落本地种子）。
+   */
+  metroApiBase: METRO_API_BASE,
 };
 
 // ===== Google Maps Platform 配置 =====

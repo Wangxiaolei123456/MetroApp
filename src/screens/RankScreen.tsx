@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
-import {SAMPLE_RANK_POINTS, SAMPLE_RANK_STOPS} from '@/data/mockData';
+import {SAMPLE_RANK_POINTS} from '@/data/mockData';
+import {fetchRankStops} from '@/services/opsService';
 import {useUserStore} from '@/store/useUserStore';
 import {usePointsStore, selectPointsStats} from '@/store/usePointsStore';
 import {ThemeColors, spacing, typography} from '@/theme/theme';
@@ -15,9 +16,19 @@ export function RankScreen() {
   const {colors} = useTheme();
   const profile = useUserStore((s) => s.profile);
   const stats = usePointsStore(selectPointsStats);
+  // H5 乘车站数榜：从后端拉取，失败回落本地种子
+  const [stopsSeed, setStopsSeed] = useState<{userId: string; name: string; value: number}[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    fetchRankStops().then((r) => alive && setStopsSeed(r));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const stops = [
-    ...SAMPLE_RANK_STOPS,
+    ...stopsSeed,
     ...(profile ? [{userId: profile.id, name: profile.name, value: profile.totalStops}] : []),
   ]
     .sort((a, b) => b.value - a.value)
