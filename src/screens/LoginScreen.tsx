@@ -1,6 +1,8 @@
 import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
+  Image,
+  ImageSourcePropType,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +17,12 @@ import {useWalletStore} from '@/store/useWalletStore';
 import {useTheme} from '@/theme/ThemeProvider';
 import {spacing, typography} from '@/theme/theme';
 import {useT} from '@/i18n';
+
+const SOCIAL_ICONS: Record<SocialProvider, ReturnType<typeof require>> = {
+  google: require('@/assets/images/icon_google.png'),
+  apple: require('@/assets/images/icon_ios.png'),
+  email: require('@/assets/images/icon_email.png'),
+};
 
 /**
  * 第三方登录选择页。
@@ -149,7 +157,7 @@ export function LoginScreen() {
                 style={styles(colors).input}
               />
               <LoginOptionButton
-                icon="✉️"
+                icon={SOCIAL_ICONS.email}
                 label={
                   socialLoading === 'email'
                     ? t('wallet.socialLogging')
@@ -170,7 +178,7 @@ export function LoginScreen() {
                 style={styles(colors).input}
               />
               <LoginOptionButton
-                icon="✉️"
+                icon={SOCIAL_ICONS.email}
                 label={
                   socialLoading === 'email'
                     ? t('wallet.socialLogging')
@@ -184,7 +192,7 @@ export function LoginScreen() {
 
           {/* Apple 登录 */}
           <LoginOptionButton
-            icon="🍎"
+            icon={SOCIAL_ICONS.apple}
             label={
               socialLoading === 'apple'
                 ? t('wallet.socialLogging')
@@ -196,7 +204,7 @@ export function LoginScreen() {
 
           {/* Google 登录 */}
           <LoginOptionButton
-            icon="🌐"
+            icon={SOCIAL_ICONS.google}
             label={
               socialLoading === 'google'
                 ? t('wallet.socialLogging')
@@ -239,6 +247,12 @@ function styles(c: ReturnType<typeof useTheme>['colors']) {
       fontSize: 22,
       marginRight: 12,
     },
+    optionIconImg: {
+      width: 22,
+      height: 22,
+      marginRight: 12,
+      resizeMode: 'contain',
+    },
     optionLabel: {
       color: c.text,
       fontSize: typography.body,
@@ -256,18 +270,23 @@ function LoginOptionButton({
   loading,
   onPress,
 }: {
-  icon: string;
+  icon: ImageSourcePropType | string;
   label: string;
   loading: boolean;
   onPress: () => void;
 }) {
   const {colors} = useTheme();
   const s = styles(colors);
+  const isImage = typeof icon !== 'string';
   return (
     <Pressable
       onPress={loading ? undefined : onPress}
       style={({pressed}) => [s.optionRow, {opacity: pressed ? 0.85 : 1}]}>
-      <Text style={s.optionIcon}>{icon}</Text>
+      {isImage ? (
+        <Image source={icon} style={s.optionIconImg} />
+      ) : (
+        <Text style={s.optionIcon}>{icon}</Text>
+      )}
       {loading ? (
         <ActivityIndicator color={colors.text} />
       ) : (

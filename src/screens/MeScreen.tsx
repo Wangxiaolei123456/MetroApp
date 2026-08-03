@@ -2,6 +2,7 @@ import React from 'react';
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useUserStore} from '@/store/useUserStore';
+import {useWalletStore} from '@/store/useWalletStore';
 import {ThemeColors, radius, spacing, typography} from '@/theme/theme';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {Button, HeroCard, ListItem, ScreenHeader, Stat} from '@/components/common';
@@ -22,6 +23,7 @@ export function MeScreen() {
   const styles = useThemedStyles(makeStyles);
   const profile = useUserStore((s) => s.profile);
   const logout = useUserStore((s) => s.logout);
+  const walletLogout = useWalletStore((s) => s.logout);
   const inviteCode = (profile?.id ?? 'METRO').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
   const menu = getMenu(colors);
 
@@ -100,7 +102,15 @@ export function MeScreen() {
         </View>
 
         {profile && (
-          <Button title={t('me.logout')} variant="danger" onPress={() => logout()} style={{marginTop: spacing.sm}} />
+          <Button
+            title={t('me.logout')}
+            variant="danger"
+            onPress={async () => {
+              await walletLogout();
+              await logout();
+            }}
+            style={{marginTop: spacing.sm}}
+          />
         )}
       </ScrollView>
     </View>
