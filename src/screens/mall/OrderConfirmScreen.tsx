@@ -1,9 +1,12 @@
-import React, {useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View} from 'react-native';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {WebView} from 'react-native-webview';
 import {
+  createBackendOrder,
   createOrder,
+  getBackendOrder,
   orderTrade,
 } from '@/services/mallService';
 import {CartGood, CartGroup, DeliveryMode, MallOrder, MallProduct, PayMethod} from '@/types/mall';
@@ -68,6 +71,13 @@ export default function OrderConfirmScreen() {
   const [delivery, setDelivery] = useState<DeliveryMode>(allowedDelivery[0] ?? 1);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<string>('');
+  // USD 收银台：内嵌 WebView 打开的收银台地址（非空时全屏展示 WebView）
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  // USD 收银台跳转后，记录后端订单 id，用于回前台时轮询支付状态
+  const pendingOrderId = useRef<string | null>(null);
+  const pollingRef = useRef(false);
+  // 轮询终止信号：组件卸载或订单终态时停止循环
+  const stopPollingRef = useRef(false);
 
   // 可选支付方式：优先用商品携带的 payMethods；购物车多商品取交集，缺省为积分
   const availablePayMethods: PayMethod[] = useMemo(() => {
@@ -82,23 +92,83 @@ export default function OrderConfirmScreen() {
   const totalPrice = items.reduce((s, i) => s + i.price * i.qty, 0);
   const enough = totalPoint <= balance;
 
+  // USD 收银台回跳后，循环轮询后端订单状态（后端主动查 Uptick 同步，不依赖回调）。
+  // 最多轮询 MAX_POLL 次、间隔 POLL_INTERVAL_MS；paid/cancelled 即停止并跳转结果页。
+  const POLL_INTERVAL_MS = 3000;
+  const MAX_POLL = 6;
+  const pollBackendOrder = useCallback(async (orderId: string) => {
+    if (pollingRef.current) return;
+    pollingRef.current = true;
+    stopPollingRef.current = false;
+    try {
+      for (let i = 0; i < MAX_POLL; i++) {
+        if (stopPollingRef.current) break;
+        const o = await getBackendOrder(orderId);
+        if (o.status === 'paid') {
+          pendingOrderId.current = null;
+          navigation.replace('MallOrderResult', {order: buildOrder(o.id, 'paid'), payMethod: 'usd'});
+          return;
+        }
+        if (o.status === 'cancelled') {
+          pendingOrderId.current = null;
+          navigation.replace('MallOrderResult', {order: buildOrder(o.id, 'cancelled'), payMethod: 'usd', payCancelled: true});
+          return;
+        }
+        // 仍处理中：等待后重试（末次不再 sleep）
+        if (i < MAX_POLL - 1) {
+          await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+        }
+      }
+      // 轮询结束仍未确认：进入待支付结果页，用户可去订单列表手动刷新（订单页也会再查 Uptick）。
+      pendingOrderId.current = null;
+      navigation.replace('MallOrderResult', {order: buildOrder(orderId, 'unpaid'), payMethod: 'usd'});
+    } catch {
+      // 轮询失败：进入待支付结果页，由用户在订单列表重试
+      pendingOrderId.current = null;
+      navigation.replace('MallOrderResult', {order: buildOrder(orderId, 'unpaid'), payMethod: 'usd'});
+    } finally {
+      pollingRef.current = false;
+    }
+  }, [navigation]);
+
+  // 从收银台返回 App（或页面重新聚焦）时，检查待支付订单状态
+  useFocusEffect(
+    useCallback(() => {
+      if (pendingOrderId.current) {
+        pollBackendOrder(pendingOrderId.current);
+      }
+      // 页面失焦/卸载时停止轮询循环，避免后台无谓请求与导航后跳转
+      return () => {
+        stopPollingRef.current = true;
+      };
+    }, [pollBackendOrder]),
+  );
+
   const confirm = async () => {
     if (busy) return;
     if (payMethod === 'points' && !enough) return;
     setBusy(true);
     try {
       if (payMethod === 'usd') {
-        // USD 支付：预留 UptickPay 收银通道（后期接入）。当前仅生成订单并标记支付方式，
-        // 真实扣款待 UptickPay 回调后端后确认。这里先进入「待支付」结果页做展示占位。
+        // USD 支付：创建后端订单（后端调用 Uptick 生成收银台支付单），拿到 upCheckoutUrl 后跳转。
         setStage(t('mall.stageUsd'));
-        const created = await createOrder({
-          // USD 下单仍需 orderID 占位；如后端未提供 ordertrade，这里用前端生成的占位单号
-          orderID: `usd_${Date.now()}`,
-          delivery: delivery === 2 ? 2 : 3,
-          point: 0,
+        const productId = String(p?.id ?? '');
+        if (!productId) throw new Error('缺少商品信息');
+        const created = await createBackendOrder({
+          productId,
           payMethod: 'usd',
+          quantity: p ? (params.qty ?? 1) : items.reduce((s, i) => s + i.qty, 0),
+          returnUrl: 'uptickcardible://pay/result',
         });
-        navigation.replace('MallOrderResult', {order: buildOrder(created.id, 'unpaid'), payMethod: 'usd'});
+        if (!created.upCheckoutUrl) {
+          // 后端未返回收银台地址（如 Uptick 暂不可用）：进入待支付结果页，由用户在订单页重试。
+          navigation.replace('MallOrderResult', {order: buildOrder(created.id, 'unpaid'), payMethod: 'usd'});
+          return;
+        }
+        // 跳转 Uptick 收银台：用内嵌 WebView 打开，监听回跳 uptickcardible://pay/result 自动关闭。
+        // 收银台支付完成后 Uptick 回跳该地址 → WebView 拦截关闭 → 下方轮询订单状态。
+        pendingOrderId.current = created.id;
+        setCheckoutUrl(created.upCheckoutUrl);
         return;
       }
 
@@ -151,6 +221,113 @@ export default function OrderConfirmScreen() {
     delivery,
     createdAt: new Date().toISOString(),
   });
+
+  // 关闭内嵌收银台 WebView，并主动查一次订单最新状态
+  const closeCheckout = useCallback(() => {
+    setCheckoutUrl(null);
+    if (pendingOrderId.current) {
+      pollBackendOrder(pendingOrderId.current);
+    }
+  }, [pollBackendOrder]);
+
+  // WebView 加载出错时显示自定义错误面板，提供「重试」「关闭」两个动作
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const retryCheckout = useCallback(() => {
+    setCheckoutError(null);
+    // 通过给 url 加随机 query 的方式强制 WebView 重新加载
+    if (checkoutUrl) {
+      const u = new URL(checkoutUrl);
+      u.searchParams.set('_t', String(Date.now()));
+      setCheckoutUrl(u.toString());
+    }
+  }, [checkoutUrl]);
+
+  // 内嵌 WebView 收银台：全屏覆盖，拦截回跳 scheme 后关闭并轮询
+  if (checkoutUrl) {
+    return (
+      <View style={{flex: 1, backgroundColor: '#fff'}}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: insets.top + spacing.sm,
+            paddingHorizontal: spacing.lg,
+            paddingBottom: spacing.sm,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}>
+          <Text style={{color: colors.text, fontWeight: '700', fontSize: 15}}>{t('mall.payUsd')}</Text>
+          <TouchableOpacity onPress={closeCheckout} hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
+            <Text style={{color: colors.primary, fontWeight: '600'}}>{t('mall.close')}</Text>
+          </TouchableOpacity>
+        </View>
+        <WebView
+          source={{uri: checkoutUrl}}
+          style={{flex: 1}}
+          startInLoadingState
+          scalesPageToFit
+          originWhitelist={['*']}
+          javaScriptEnabled
+          domStorageEnabled
+          // iOS: 允许在 https 页面里加载 http 资源（Stripe 收银台通常全 https，但兼容占位资源）
+          mixedContentMode="compatibility"
+          // Android: 在 https 页面内允许访问 http 内容
+          allowFileAccess={false}
+          // 第三方 Cookie（Stripe 3DS 等）需要开启
+          thirdPartyCookiesEnabled
+          // 允许 window.open 唤起回跳 scheme
+          javaScriptCanOpenWindowsAutomatically
+          onShouldStartLoadWithRequest={req => {
+            // 拦截 uptickcardible scheme 后关闭收银台并跳结果页
+            if (req.url.startsWith('uptickcardible://')) {
+              closeCheckout();
+              return false;
+            }
+            // 其它 URL 正常加载（http/https）
+            return true;
+          }}
+          // 隐藏 iOS/Android 默认的错误提示条，避免遮盖自定义面板
+          renderError={errorName => (
+            <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg}}>
+              <Text style={{color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 6}}>
+                {t('mall.checkoutLoadErrorTitle')}
+              </Text>
+              <Text style={{color: colors.textSub, fontSize: 13, marginBottom: spacing.lg}}>
+                {checkoutError || t('mall.checkoutLoadErrorHint')}
+              </Text>
+              <TouchableOpacity
+                onPress={retryCheckout}
+                style={{
+                  backgroundColor: colors.primary,
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.sm,
+                  borderRadius: 8,
+                  marginBottom: spacing.sm,
+                }}>
+                <Text style={{color: '#fff', fontWeight: '700'}}>{t('mall.retry')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={closeCheckout}>
+                <Text style={{color: colors.textSub, marginTop: spacing.sm}}>{t('mall.close')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          onError={e => {
+            setCheckoutError(e.nativeEvent.description || e.nativeEvent.code || 'load error');
+          }}
+          onHttpError={e => {
+            // 4xx/5xx 时记录下来以便用户重试
+            setCheckoutError(`HTTP ${e.nativeEvent.statusCode}`);
+          }}
+          onNavigationStateChange={nav => {
+            if (nav.url && nav.url.startsWith('uptickcardible://')) {
+              closeCheckout();
+            }
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={{flex: 1, backgroundColor: colors.background}}>

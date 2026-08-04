@@ -139,3 +139,24 @@ export interface CreateOrderResult {
   /** 本次下单使用的支付方式 */
   payMethod?: PayMethod;
 }
+
+/** metro-backend /api/orders 创建的订单（支持积分与 UptickPay USD 支付） */
+export interface BackendOrder {
+  id: string;
+  userId: string;
+  productId?: string | null;
+  quantity: number;
+  payMethod: PayMethod;
+  /** 积分支付金额 */
+  totalPoint: number;
+  /** 美元支付金额（两位小数） */
+  totalUsd: number;
+  /** created=待支付 paid=已支付 cancelled=已取消 done=已核销 */
+  status: 'created' | 'paid' | 'cancelled' | 'done';
+  /** Uptick 支付单号（usd 支付） */
+  upOrderNo?: string | null;
+  /** Uptick 收银台跳转地址（usd 支付，下单后回填） */
+  upCheckoutUrl?: string | null;
+  paidAt?: string | null;
+  createdAt: string;
+}

@@ -16,6 +16,7 @@
 import {APP_CONFIG} from '@/config/app';
 import {METRO_API_BASE} from '@/config/env';
 import {
+  BackendOrder,
   Cart,
   CartGood,
   CartGroup,
@@ -24,6 +25,7 @@ import {
   MallProduct,
   OrderTradeParams,
   OrderTradeResult,
+  PayMethod,
 } from '@/types/mall';
 
 const BASE = APP_CONFIG.mallServerUrl;
@@ -363,4 +365,62 @@ export async function fetchOrders(_userId: string): Promise<MallOrder[]> {
   // Metro.IOS 订单为 H5（/api/user/orders）。本 RN 版在接入真实后端时，
   // 可改为打开 WebView 或在服务层缓存本地生成的订单。这里返回空列表即可由页面提示。
   return [];
+}
+
+/**
+ * 列出当前用户的后端订单（UptickPay / metro-backend）。
+ * 优先返回后端订单；未配置后端地址时返回空数组。
+ */
+export async function listBackendOrders(): Promise<BackendOrder[]> {
+  if (!METRO_API_BASE) return [];
+  try {
+    const res = await fetch(`${METRO_API_BASE}/api/orders`);
+    if (!res.ok) throw new Error(`订单列表接口返回 ${res.status}`);
+    const data = (await res.json()) as BackendOrder[];
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+// ===================== UptickPay / metro-backend 订单 =====================
+//
+// USD 支付链路：
+//   1) 调后端 POST /api/orders 创建订单；usd 时后端会调用 Uptick 创建收银台支付单，
+//      返回 upCheckoutUrl。
+//   2) 客户端用 Linking.openURL(upCheckoutUrl) 跳转 Uptick 收银台（浏览器）。
+//   3) 用户在收银台完成支付后，Uptick 通过 notifyUrl 通知后端更新订单状态；
+//      客户端回到前台时轮询 GET /api/orders/:id 获取最新状态。
+
+/** 创建后端订单（积分 / USD）。返回订单信息，USD 时含 upCheckoutUrl。 */
+export async function createBackendOrder(input: {
+  productId: string;
+  payMethod: PayMethod;
+  quantity?: number;
+  /** 支付完成回跳地址（Uptick 收银台用；如 metroapp://pay/result?orderId=...） */
+  returnUrl?: string;
+}): Promise<BackendOrder> {
+  if (!METRO_API_BASE) throw new Error('未配置后端地址');
+  const res = await fetch(`${METRO_API_BASE}/api/orders`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      productId: input.productId,
+      payMethod: input.payMethod,
+      quantity: input.quantity ?? 1,
+      returnUrl: input.returnUrl,
+    }),
+  });
+  const data = (await res.json()) as BackendOrder & {message?: string};
+  if (!res.ok) throw new Error(data.message || `下单失败 ${res.status}`);
+  return data;
+}
+
+/** 查询后端订单最新状态（含 Uptick 支付状态同步）。 */
+export async function getBackendOrder(id: string): Promise<BackendOrder> {
+  if (!METRO_API_BASE) throw new Error('未配置后端地址');
+  const res = await fetch(`${METRO_API_BASE}/api/orders/${id}`);
+  const data = (await res.json()) as BackendOrder & {message?: string};
+  if (!res.ok) throw new Error(data.message || `查询订单失败 ${res.status}`);
+  return data;
 }
