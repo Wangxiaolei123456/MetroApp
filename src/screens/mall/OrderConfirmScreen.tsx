@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View} from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -73,6 +73,7 @@ export default function OrderConfirmScreen() {
   const [stage, setStage] = useState<string>('');
   // USD 收银台：内嵌 WebView 打开的收银台地址（非空时全屏展示 WebView）
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   // USD 收银台跳转后，记录后端订单 id，用于回前台时轮询支付状态
   const pendingOrderId = useRef<string | null>(null);
   const pollingRef = useRef(false);
@@ -158,15 +159,16 @@ export default function OrderConfirmScreen() {
           productId,
           payMethod: 'usd',
           quantity: p ? (params.qty ?? 1) : items.reduce((s, i) => s + i.qty, 0),
-          returnUrl: 'uptickcardible://pay/result',
+          // 必须用 https：自定义 scheme 会被 Stripe/Uptick 忽略并落到 example.com。
+          // WebView 拦截 example.com /pay/result 后关闭并轮询，用户看不到该页。
+          returnUrl: 'https://example.com/metro/pay/result',
         });
         if (!created.upCheckoutUrl) {
           // 后端未返回收银台地址（如 Uptick 暂不可用）：进入待支付结果页，由用户在订单页重试。
           navigation.replace('MallOrderResult', {order: buildOrder(created.id, 'unpaid'), payMethod: 'usd'});
           return;
         }
-        // 跳转 Uptick 收银台：用内嵌 WebView 打开，监听回跳 uptickcardible://pay/result 自动关闭。
-        // 收银台支付完成后 Uptick 回跳该地址 → WebView 拦截关闭 → 下方轮询订单状态。
+        // 跳转 Uptick 收银台：内嵌 WebView；付完回跳 https 占位页 → 拦截关闭 → 轮询订单。
         pendingOrderId.current = created.id;
         setCheckoutUrl(created.upCheckoutUrl);
         return;
@@ -223,17 +225,101 @@ export default function OrderConfirmScreen() {
   });
 
   // 关闭内嵌收银台 WebView，并主动查一次订单最新状态
+  const closingCheckoutRef = useRef(false);
   const closeCheckout = useCallback(() => {
+    if (closingCheckoutRef.current) return;
+    closingCheckoutRef.current = true;
     setCheckoutUrl(null);
+    setCheckoutError(null);
     if (pendingOrderId.current) {
       pollBackendOrder(pendingOrderId.current);
     }
   }, [pollBackendOrder]);
 
-  // WebView 加载出错时显示自定义错误面板，提供「重试」「关闭」两个动作
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  // 支付完成回跳判断。
+  // Stripe/Uptick 要求 https returnUrl；付完常落到 example.com。拦到即关 WebView 并轮询。
+  const isPayReturnUrl = useCallback((url?: string | null) => {
+    if (!url) return false;
+    const raw = url.trim();
+    const u = raw.toLowerCase();
+    if (u.includes('example.com')) return true;
+    if (u.includes('/pay/result') || u.includes('/metro/pay')) return true;
+    if (u.startsWith('uptickcardible://')) return true;
+    if (u.startsWith('intent://') || u.startsWith('android-app://')) return true;
+    if (u.startsWith('about:') || u.startsWith('data:')) return false;
+    try {
+      const parsed = new URL(raw);
+      const host = parsed.hostname.toLowerCase();
+      if (host === 'example.com' || host.endsWith('.example.com')) return true;
+      if (parsed.pathname.toLowerCase().includes('/pay/result')) return true;
+    } catch {
+      // ignore
+    }
+    return !u.startsWith('http://') && !u.startsWith('https://');
+  }, []);
+
+  // 用 ref 避免 Android WebView 回调拿到过期闭包
+  const isPayReturnUrlRef = useRef(isPayReturnUrl);
+  isPayReturnUrlRef.current = isPayReturnUrl;
+  const closeCheckoutRef = useRef(closeCheckout);
+  closeCheckoutRef.current = closeCheckout;
+
+  const handleMaybePayReturn = useCallback((url?: string | null) => {
+    if (isPayReturnUrlRef.current(url)) {
+      closeCheckoutRef.current();
+      return true;
+    }
+    return false;
+  }, []);
+
+  // 收银台打开期间后台查单：仅在 paid/cancelled 时离场（不因超时误关正在支付的页）
+  useEffect(() => {
+    if (!checkoutUrl) {
+      closingCheckoutRef.current = false;
+      return;
+    }
+    const orderId = pendingOrderId.current;
+    if (!orderId) return;
+    let cancelled = false;
+    (async () => {
+      for (let i = 0; i < 60; i++) {
+        if (cancelled) return;
+        await new Promise(r => setTimeout(r, 2000));
+        if (cancelled || closingCheckoutRef.current) return;
+        try {
+          const o = await getBackendOrder(orderId);
+          if (cancelled || closingCheckoutRef.current) return;
+          if (o.status === 'paid') {
+            closingCheckoutRef.current = true;
+            pendingOrderId.current = null;
+            setCheckoutUrl(null);
+            navigation.replace('MallOrderResult', {order: buildOrder(o.id, 'paid'), payMethod: 'usd'});
+            return;
+          }
+          if (o.status === 'cancelled') {
+            closingCheckoutRef.current = true;
+            pendingOrderId.current = null;
+            setCheckoutUrl(null);
+            navigation.replace('MallOrderResult', {
+              order: buildOrder(o.id, 'cancelled'),
+              payMethod: 'usd',
+              payCancelled: true,
+            });
+            return;
+          }
+        } catch {
+          // 忽略单次失败，继续轮询
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [checkoutUrl, navigation]);
+
   const retryCheckout = useCallback(() => {
     setCheckoutError(null);
+    closingCheckoutRef.current = false;
     // 通过给 url 加随机 query 的方式强制 WebView 重新加载
     if (checkoutUrl) {
       const u = new URL(checkoutUrl);
@@ -242,7 +328,7 @@ export default function OrderConfirmScreen() {
     }
   }, [checkoutUrl]);
 
-  // 内嵌 WebView 收银台：全屏覆盖，拦截回跳 scheme 后关闭并轮询
+  // 内嵌 WebView 收银台：全屏覆盖；回跳占位页 / 查单成功后关闭并进结果页
   if (checkoutUrl) {
     return (
       <View style={{flex: 1, backgroundColor: '#fff'}}>
@@ -270,25 +356,41 @@ export default function OrderConfirmScreen() {
           originWhitelist={['*']}
           javaScriptEnabled
           domStorageEnabled
-          // iOS: 允许在 https 页面里加载 http 资源（Stripe 收银台通常全 https，但兼容占位资源）
           mixedContentMode="compatibility"
-          // Android: 在 https 页面内允许访问 http 内容
           allowFileAccess={false}
-          // 第三方 Cookie（Stripe 3DS 等）需要开启
           thirdPartyCookiesEnabled
-          // 允许 window.open 唤起回跳 scheme
           javaScriptCanOpenWindowsAutomatically
+          setSupportMultipleWindows={false}
           onShouldStartLoadWithRequest={req => {
-            // 拦截 uptickcardible scheme 后关闭收银台并跳结果页
-            if (req.url.startsWith('uptickcardible://')) {
-              closeCheckout();
-              return false;
-            }
-            // 其它 URL 正常加载（http/https）
+            if (handleMaybePayReturn(req.url)) return false;
             return true;
           }}
-          // 隐藏 iOS/Android 默认的错误提示条，避免遮盖自定义面板
-          renderError={errorName => (
+          onLoadStart={e => {
+            handleMaybePayReturn(e.nativeEvent.url);
+          }}
+          onLoadEnd={e => {
+            handleMaybePayReturn(e.nativeEvent.url);
+          }}
+          onMessage={e => {
+            if (e.nativeEvent.data === 'pay_return') {
+              closeCheckoutRef.current();
+            }
+          }}
+          // 页面内再兜一层：落到 example.com /pay/result 立刻通知原生关闭
+          injectedJavaScript={`
+            (function(){
+              try {
+                var h = (location.hostname || '').toLowerCase();
+                var p = (location.pathname || '').toLowerCase();
+                var href = (location.href || '').toLowerCase();
+                if (h === 'example.com' || h.indexOf('example.com') >= 0 || p.indexOf('/pay/result') >= 0 || href.indexOf('example.com') >= 0) {
+                  window.ReactNativeWebView && window.ReactNativeWebView.postMessage('pay_return');
+                }
+              } catch (e) {}
+            })();
+            true;
+          `}
+          renderError={() => (
             <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg}}>
               <Text style={{color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 6}}>
                 {t('mall.checkoutLoadErrorTitle')}
@@ -313,16 +415,23 @@ export default function OrderConfirmScreen() {
             </View>
           )}
           onError={e => {
-            setCheckoutError(e.nativeEvent.description || e.nativeEvent.code || 'load error');
+            const {url, domain, description, code} = e.nativeEvent;
+            const desc = String(description || '');
+            const looksLikePayReturn =
+              isPayReturnUrlRef.current(url) ||
+              domain === 'undefined' ||
+              desc.includes('ERR_UNKNOWN_URL_SCHEME');
+            if (looksLikePayReturn && pendingOrderId.current) {
+              closeCheckoutRef.current();
+              return;
+            }
+            setCheckoutError(desc || String(code) || 'load error');
           }}
           onHttpError={e => {
-            // 4xx/5xx 时记录下来以便用户重试
             setCheckoutError(`HTTP ${e.nativeEvent.statusCode}`);
           }}
           onNavigationStateChange={nav => {
-            if (nav.url && nav.url.startsWith('uptickcardible://')) {
-              closeCheckout();
-            }
+            handleMaybePayReturn(nav.url);
           }}
         />
       </View>
