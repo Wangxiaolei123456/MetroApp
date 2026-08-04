@@ -23,11 +23,19 @@ import {RewardsHome} from '@/screens/RewardsHome';
 import {DashboardScreen} from '@/screens/DashboardScreen';
 import {LoginScreen} from '@/screens/LoginScreen';
 
+import MallHomeScreen from '@/screens/mall/MallHomeScreen';
+import MallProductDetailScreen from '@/screens/mall/ProductDetailScreen';
+import CartScreen from '@/screens/mall/CartScreen';
+import OrderConfirmScreen from '@/screens/mall/OrderConfirmScreen';
+import OrderResultScreen from '@/screens/mall/OrderResultScreen';
+import MyOrdersScreen from '@/screens/mall/MyOrdersScreen';
+
 const Tab = createBottomTabNavigator();
 const MapStack = createNativeStackNavigator();
 const MeStack = createNativeStackNavigator();
 const RewardsStack = createNativeStackNavigator();
 const WalletStack = createNativeStackNavigator();
+const MallStack = createNativeStackNavigator();
 
 function MapStackScreen() {
   return (
@@ -77,11 +85,26 @@ function WalletTabScreen() {
   );
 }
 
+// 商城 Tab：复用 Metro.IOS 既有后端服务（/shop/*、/api/user/*），全部由 RN 重构。
+function MallTabScreen() {
+  return (
+    <MallStack.Navigator screenOptions={{headerShown: false}}>
+      <MallStack.Screen name="MallHome" component={MallHomeScreen} />
+      <MallStack.Screen name="MallProductDetail" component={MallProductDetailScreen} />
+      <MallStack.Screen name="MallCart" component={CartScreen} />
+      <MallStack.Screen name="MallOrderConfirm" component={OrderConfirmScreen} />
+      <MallStack.Screen name="MallOrderResult" component={OrderResultScreen} />
+      <MallStack.Screen name="MallOrders" component={MyOrdersScreen} />
+    </MallStack.Navigator>
+  );
+}
+
 // Tab 图标改用语义化 emoji 提升识别度；如需更专业的矢量图标，可替换为 react-native-vector-icons。
 const TABS = [
   {name: 'MapTab', component: MapStackScreen, labelKey: 'nav.map' as const, icon: '🗺'},
   {name: 'Trip', component: TripScreen, labelKey: 'nav.trip' as const, icon: '🚇'},
   {name: 'RewardsTab', component: RewardsTabScreen, labelKey: 'nav.rewards' as const, icon: '🎁'},
+  {name: 'MallTab', component: MallTabScreen, labelKey: 'nav.mall' as const, icon: '🛍'},
   {name: 'Wallet', component: WalletTabScreen, labelKey: 'nav.wallet' as const, icon: '👛'},
   {name: 'MeTab', component: MeStackScreen, labelKey: 'nav.me' as const, icon: '👤'},
 ];

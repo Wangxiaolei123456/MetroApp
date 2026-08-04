@@ -1306,6 +1306,7 @@ export function getCityGraph(cityId: string): MetroGraph {
 }
 
 export const DEFAULT_CITY_ID = 'demo';
+// 初始默认城市（兜底）。运行时若配置了 METRO_API_BASE，会从 /api/metro/cities 拉取真实城市列表覆盖（见 fetchSupportedCities）。
 export const SUPPORTED_CITIES: {id: string; name: string; nameEn: string}[] = [
   {id: 'demo', name: '上海', nameEn: 'Shanghai'},
   {id: 'hk', name: '香港', nameEn: 'Hong Kong'},
@@ -1313,6 +1314,35 @@ export const SUPPORTED_CITIES: {id: string; name: string; nameEn: string}[] = [
 
 // ===== 后端接管：优先从运营后端拉取线网，失败回退本地（由 metro-admin 管理） =====
 import {METRO_API_BASE} from '@/config/env';
+
+/**
+ * 从运营后端拉取真实城市列表，覆盖本地 SUPPORTED_CITIES（原地更新同一引用，保持外部导入有效）。
+ * 失败或未配置时保留本地默认城市，不影响使用。
+ */
+export async function fetchSupportedCities(): Promise<void> {
+  if (!METRO_API_BASE) {
+    console.warn('[MetroApp][metroData] metroApiBase 未配置，城市列表使用本地默认');
+    return;
+  }
+  const url = `${METRO_API_BASE}/api/metro/cities`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`[MetroApp][metroData] 城市列表接口返回 ${res.status}，保留本地默认`);
+      return;
+    }
+    const list = (await res.json()) as {id: string; name: string; nameEn: string}[];
+    const mapped = list
+      .filter((c) => c && c.id)
+      .map((c) => ({id: c.id, name: c.name, nameEn: c.nameEn || c.name}));
+    if (mapped.length === 0) return;
+    SUPPORTED_CITIES.length = 0;
+    mapped.forEach((c) => SUPPORTED_CITIES.push(c));
+    console.log(`[MetroApp][metroData] 城市列表已从后端加载: ${mapped.map((c) => c.id).join(', ')}`);
+  } catch (e) {
+    console.warn(`[MetroApp][metroData] 城市列表请求失败，保留本地默认: ${(e as Error).message}`);
+  }
+}
 
 /**
  * 从后端拉取指定城市的线网图，并写回本地缓存（CITIES）。

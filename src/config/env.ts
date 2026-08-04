@@ -12,3 +12,16 @@
  * 注意：改完需重新 build（yarn ios / yarn android）。
  */
 export const METRO_API_BASE = 'http://192.168.111.176:3000';
+
+/**
+ * Metro.IOS 商城的远端后端地址（复用了 Metro.IOS 既有服务，不再自建后端）。
+ * 继承自 Metro.IOS/Zuiditie/XHD.pch 中的 SERVER_URL。
+ *   - 留空 ''          → 商城回落本地 Mock 数据，页面可完整演示。
+ *   - 填后端地址       → 调用 Metro.IOS 既有 /shop/*、/api/user/* 接口。
+ *
+ * 候选（XHD.pch 中定义）：
+ *   http://192.168.111.46:8088
+ *   https://metro-web.grandmetroclub.com
+ *   https://metro.testweb.uptick.network
+ */
+export const MALL_SERVER_URL = 'https://metro-web.grandmetroclub.com';

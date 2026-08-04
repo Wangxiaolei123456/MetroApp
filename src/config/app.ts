@@ -1,5 +1,5 @@
 import { ChainEnv } from '@/types';
-import { METRO_API_BASE } from './env';
+import { METRO_API_BASE, MALL_SERVER_URL } from './env';
 
 // ===== 应用级配置（集中管理，便于后台下发/替换） =====
 
@@ -64,6 +64,12 @@ export const APP_CONFIG = {
    * 取自 src/config/env.ts 的 METRO_API_BASE，缺省为 ''（回落本地种子）。
    */
   metroApiBase: METRO_API_BASE,
+
+  /**
+   * 商城远端后端（复用 Metro.IOS 既有服务）。
+   * 取自 src/config/env.ts 的 MALL_SERVER_URL，缺省为 ''（回落 Mock）。
+   */
+  mallServerUrl: MALL_SERVER_URL,
 };
 
 // ===== Google Maps Platform 配置 =====

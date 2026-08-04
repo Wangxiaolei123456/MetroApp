@@ -59,6 +59,16 @@
 				<string>uptickcardible</string>
 			</array>
 		</dict>
+		<!-- 支付宝支付回调 Scheme（与 src/services/alipay.ts 的 APP_ALIPAY_SCHEME 保持一致，
+		     正式上线需替换为在支付宝开放平台登记的商户 Scheme） -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>alipay</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.grandmetroclub.metro</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

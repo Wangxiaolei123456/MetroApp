@@ -11,6 +11,7 @@ import {useTripStore} from '@/store/useTripStore';
 import {useWalletStore} from '@/store/useWalletStore';
 import {useSettingsStore} from '@/store/useSettingsStore';
 import {OnboardingScreen} from '@/screens/OnboardingScreen';
+import {fetchSupportedCities} from '@/data/metroData';
 import {ThemeProvider, useTheme} from '@/theme/ThemeProvider';
 import {darkColors} from '@/theme/theme';
 import {handleIncomingUrl, WEB3AUTH_REDIRECT_SCHEME} from '@/services/web3Auth';
@@ -25,6 +26,8 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
+      // 先从运营后端拉取真实城市列表（覆盖本地默认），再初始化各 store。
+      await fetchSupportedCities();
       await Promise.all([initUser(), initPoints(), initTrip(), initWallet(), initSettings()]);
       setReady(true);
     })();
@@ -57,7 +60,8 @@ function ThemedApp() {
   // 从后台恢复/冷启动时事件常投递不到，需 App 层主动转发。
   useEffect(() => {
     const handleUrl = (url: string | null) => {
-      if (url && url.startsWith(WEB3AUTH_REDIRECT_SCHEME)) {
+      if (!url) return;
+      if (url.startsWith(WEB3AUTH_REDIRECT_SCHEME)) {
         void handleIncomingUrl(url);
       }
     };
