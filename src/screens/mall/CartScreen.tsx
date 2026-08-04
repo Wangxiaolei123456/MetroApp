@@ -129,9 +129,6 @@ export default function CartScreen() {
                     <View style={{flexDirection: 'row', alignItems: 'baseline', marginTop: 4}}>
                       <Text style={{color: colors.primary, fontWeight: '800'}}>{good.point}</Text>
                       <Text style={{color: colors.textSub, fontSize: 11, marginLeft: 4}}>{t('mall.point')}</Text>
-                      <Text style={{color: colors.textSub, fontSize: 11, marginLeft: spacing.sm, textDecorationLine: 'line-through'}}>
-                        ¥{good.marketPrice}
-                      </Text>
                     </View>
                     <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 6, justifyContent: 'space-between'}}>
                       <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -190,7 +187,11 @@ export default function CartScreen() {
             <Text style={{color: colors.text, fontWeight: '800', fontSize: 16}}>
               {totalPoint} {t('mall.point')}
             </Text>
-            <Text style={{color: colors.textSub, fontSize: 12}}>¥{totalPrice}</Text>
+            {totalPrice > 0 ? (
+              <Text style={{color: colors.textSub, fontSize: 12}}>
+                ${totalPrice.toFixed(2)}
+              </Text>
+            ) : null}
           </View>
           <TouchableOpacity
             onPress={() => {

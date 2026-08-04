@@ -185,6 +185,17 @@ const mockCarts = new Map<string, CartGroup[]>();
  * 数据源：优先 metro-backend /api/products（由 metro-admin 配置，支持积分价/美元价与支付方式）；
  * 失败或未配置时回落本地 Mock，保证页面可演示。
  */
+/** 商品图兜底：基于 id 生成稳定的 picsum 占位图（用于 imageUrl 为空或加载失败时）。 */
+export function fallbackImage(id: string): string {
+  return `https://picsum.photos/seed/${encodeURIComponent(id)}/480/480`;
+}
+
+/** 归一化后端图片字段：空值回落 picsum；非空原样返回，由前端 Image onError 再兜底。 */
+function normalizeImageUrl(url: string | undefined | null, id: string): string {
+  if (typeof url === 'string' && url.trim()) return url.trim();
+  return fallbackImage(id);
+}
+
 export async function fetchProducts(cityId?: string): Promise<MallProduct[]> {
   if (METRO_API_BASE) {
     try {
@@ -208,7 +219,7 @@ export async function fetchProducts(cityId?: string): Promise<MallProduct[]> {
         .map((p) => ({
           id: p.id,
           title: p.titleEn ? `${p.title} ${p.titleEn}` : p.title,
-          image: p.imageUrl ?? '',
+          image: normalizeImageUrl(p.imageUrl, p.id),
           price: p.priceUsd || 0,
           point: p.pricePoints || 0,
           priceUsd: p.priceUsd || 0,

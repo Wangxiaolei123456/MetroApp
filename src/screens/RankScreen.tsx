@@ -1,143 +1,81 @@
 import React, {useEffect, useState} from 'react';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
-import {SAMPLE_RANK_POINTS} from '@/data/mockData';
+import {ActivityIndicator, ScrollView, Text, View} from 'react-native';
 import {fetchRankStops} from '@/services/opsService';
-import {useUserStore} from '@/store/useUserStore';
-import {usePointsStore, selectPointsStats} from '@/store/usePointsStore';
+import {getRanking, RankItem} from '@/services/rewardsService';
 import {ThemeColors, spacing, typography} from '@/theme/theme';
-import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
-import {Card, Chip, ScreenHeader, SectionTitle} from '@/components/common';
+import {useTheme} from '@/theme/ThemeProvider';
+import {Card, Chip, ScreenHeader, SegmentTabs} from '@/components/common';
 import {useT} from '@/i18n';
 
-const MEDALS = ['🥇', '🥈', '🥉'];
+interface StopRank {
+  userId: string;
+  name: string;
+  stops: number;
+  rides: number;
+}
 
 export function RankScreen() {
   const t = useT();
   const {colors} = useTheme();
-  const profile = useUserStore((s) => s.profile);
-  const stats = usePointsStore(selectPointsStats);
-  // H5 乘车站数榜：从后端拉取，失败回落本地种子
-  const [stopsSeed, setStopsSeed] = useState<{userId: string; name: string; value: number}[]>([]);
+  const [tab, setTab] = useState<'points' | 'stops'>('points');
+  const [points, setPoints] = useState<RankItem[]>([]);
+  const [stops, setStops] = useState<StopRank[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    fetchRankStops().then((r) => alive && setStopsSeed(r));
+    setLoading(true);
+    const p =
+      tab === 'points'
+        ? getRanking(20).then(r => alive && setPoints(r.list))
+        : fetchRankStops().then((rows: any[]) => alive && setStops(rows.map(r => ({userId: r.userId, name: r.name, stops: r.totalStops, rides: r.totalRides}))));
+    p.catch(() => {}).finally(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
-  }, []);
-
-  const stops = [
-    ...stopsSeed,
-    ...(profile ? [{userId: profile.id, name: profile.name, value: profile.totalStops}] : []),
-  ]
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
-
-  const points = [
-    ...SAMPLE_RANK_POINTS,
-    ...(profile ? [{userId: profile.id, name: profile.name, value: stats.balance}] : []),
-  ]
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
+  }, [tab]);
 
   return (
     <View style={{flex: 1, backgroundColor: colors.background}}>
       <ScreenHeader title={t('rank.title')} subtitle={t('rank.subtitle')} />
+      <View style={{paddingHorizontal: spacing.sm}}>
+        <SegmentTabs
+          tabs={[t('rank.points'), t('rank.stops')]}
+          activeIndex={tab === 'points' ? 0 : 1}
+          onChange={(i) => setTab(i === 0 ? 'points' : 'stops')}
+        />
+      </View>
       <ScrollView contentContainerStyle={{paddingBottom: spacing.xl}}>
-        <SectionTitle>{t('rank.stops')}</SectionTitle>
-        <Card style={{paddingVertical: spacing.sm}}>
-          {stops.map((r, i) => (
-            <RankRow
-              key={r.userId}
-              rank={i + 1}
-              name={r.name}
-              value={t('common.stops', {n: r.value})}
-              me={r.userId === profile?.id}
-              last={i === stops.length - 1}
-            />
-          ))}
-        </Card>
-        <SectionTitle>{t('rank.points')}</SectionTitle>
-        <Card style={{paddingVertical: spacing.sm}}>
-          {points.map((r, i) => (
-            <RankRow
-              key={r.userId}
-              rank={i + 1}
-              name={r.name}
-              value={`${r.value}`}
-              me={r.userId === profile?.id}
-              last={i === points.length - 1}
-            />
-          ))}
-        </Card>
+        {loading && (
+          <View style={{padding: spacing.xl, alignItems: 'center'}}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        )}
+        {!loading &&
+          (tab === 'points' ? points : stops).map((u: any, i) => {
+            const top = i < 3;
+            const medal = ['🥇', '🥈', '🥉'][i];
+            return (
+              <Card key={u.userId} style={{flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md}}>
+                <View style={{width: 36, alignItems: 'center'}}>
+                  <Text style={{fontSize: top ? 22 : 16, fontWeight: '800', color: top ? colors.primary : colors.textFaint}}>
+                    {top ? medal : i + 1}
+                  </Text>
+                </View>
+                <View style={{flex: 1, marginLeft: spacing.md}}>
+                  <Text style={{fontWeight: '700', color: colors.text}}>{u.name}</Text>
+                  <Text style={{color: colors.textFaint, fontSize: typography.caption, marginTop: 2}}>
+                    {tab === 'points' ? t('rank.stopsVal', {n: u.totalStops}) : t('rank.stopsVal', {n: u.stops})}
+                  </Text>
+                </View>
+                <Chip
+                  text={tab === 'points' ? `${u.balance} ${t('rank.pts')}` : `${u.stops} ${t('rank.station')}`}
+                  color={top ? colors.gold : colors.primary}
+                />
+              </Card>
+            );
+          })}
       </ScrollView>
     </View>
   );
-}
-
-function RankRow({
-  rank,
-  name,
-  value,
-  me,
-  last,
-}: {
-  rank: number;
-  name: string;
-  value: string;
-  me?: boolean;
-  last?: boolean;
-}) {
-  const t = useT();
-  const {colors} = useTheme();
-  const styles = useThemedStyles(makeStyles);
-  return (
-    <View style={[styles.row, !last && styles.rowBorder, me && styles.meRow]}>
-      {rank <= 3 ? (
-        <Text style={{width: 28, fontSize: 18}}>{MEDALS[rank - 1]}</Text>
-      ) : (
-        <Text style={styles.rank}>{rank}</Text>
-      )}
-      <View style={[styles.avatar, me && {backgroundColor: colors.primary}]}>
-        <Text style={{fontSize: 12, fontWeight: '800', color: me ? colors.white : colors.primary}}>
-          {name.slice(0, 1).toUpperCase()}
-        </Text>
-      </View>
-      <Text style={{flex: 1, color: me ? colors.primary : colors.text, fontWeight: me ? '700' : '500'}}>
-        {name}
-        {me && t('rank.me')}
-      </Text>
-      <Chip text={value} color={rank <= 3 ? colors.gold : colors.primary} />
-    </View>
-  );
-}
-
-function makeStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    row: {flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm},
-    rowBorder: {borderBottomWidth: 1, borderBottomColor: colors.border},
-    meRow: {
-      backgroundColor: colors.primary + '0D',
-      marginHorizontal: -spacing.md,
-      paddingHorizontal: spacing.md,
-      borderRadius: 10,
-      borderBottomWidth: 0,
-    },
-    rank: {
-      width: 28,
-      fontWeight: '800',
-      color: colors.textFaint,
-      fontSize: typography.sub,
-      textAlign: 'center',
-    },
-    avatar: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: colors.primarySoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-  });
 }

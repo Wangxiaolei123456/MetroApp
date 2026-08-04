@@ -1,11 +1,13 @@
-import React from 'react';
+import React, {useCallback, useEffect} from 'react';
 import {ScrollView, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
 import {radius, spacing, ThemeColors} from '@/theme/theme';
 import {Button, ListItem, ScreenHeader} from '@/components/common';
 import {useT} from '@/i18n';
-
+import {usePointsStore} from '@/store/usePointsStore';
+import {useTaskStore} from '@/store/useTaskStore';
+import {useActivityStore} from '@/store/useActivityStore';
 type ModuleDef = {
   target: string;
   labelKey: string;
@@ -23,6 +25,17 @@ export function RewardsHome() {
   const t = useT();
   const {colors} = useTheme();
   const styles = useThemedStyles(makeStyles);
+
+  // 进入奖励页时：同步积分/任务/活动/空投/排行等真实数据
+  const refresh = useCallback(async () => {
+    await usePointsStore.getState().load().catch(() => {});
+    await useTaskStore.getState().load().catch(() => {});
+    await useActivityStore.getState().load().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const modules: ModuleDef[] = [
     {target: 'Points', labelKey: 'me.menu.points', subKey: 'rewards.pointsSub', icon: '🏅', colorKey: 'gold'},

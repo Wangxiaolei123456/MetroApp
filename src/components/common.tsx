@@ -485,3 +485,52 @@ export function Text_({
   const {colors} = useTheme();
   return <Text style={[{color: colors.text}, style]}>{children}</Text>;
 }
+
+/* ---------------- 分段切换标签 ---------------- */
+
+export function SegmentTabs({
+  tabs,
+  activeIndex,
+  onChange,
+}: {
+  tabs: string[];
+  activeIndex: number;
+  onChange: (index: number) => void;
+}) {
+  const {colors} = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        padding: 3,
+        marginTop: spacing.xs,
+      }}>
+      {tabs.map((label, i) => {
+        const active = i === activeIndex;
+        return (
+          <Pressable
+            key={i}
+            onPress={() => onChange(i)}
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              paddingVertical: spacing.sm,
+              borderRadius: radius.sm,
+              backgroundColor: active ? colors.primary : 'transparent',
+            }}>
+            <Text
+              style={{
+                color: active ? '#fff' : colors.textSub,
+                fontWeight: '700',
+                fontSize: typography.body,
+              }}>
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}

@@ -1,8 +1,8 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {addToCart} from '@/services/mallService';
+import {addToCart, fallbackImage} from '@/services/mallService';
 import {MallProduct} from '@/types/mall';
 import {usePointsStore, selectPointsStats} from '@/store/usePointsStore';
 import {useUserStore} from '@/store/useUserStore';
@@ -27,6 +27,13 @@ export default function ProductDetailScreen() {
   const [qty, setQty] = useState(1);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
+  const [imgSrc, setImgSrc] = useState<string>(product.image);
+  const [imgErrored, setImgErrored] = useState<boolean>(false);
+
+  useEffect(() => {
+    setImgSrc(product.image);
+    setImgErrored(false);
+  }, [product.id, product.image]);
 
   const userId = useUserStore(s => s.profile?.id ?? 'me');
   const balance = usePointsStore(s => selectPointsStats(s).balance);
@@ -59,10 +66,30 @@ export default function ProductDetailScreen() {
     <View style={{flex: 1, backgroundColor: colors.background}}>
       <ScreenHeader title={t('mall.productDetail')} />
       <ScrollView contentContainerStyle={{paddingBottom: 100}}>
-        <Image
-          source={{uri: product.image}}
-          style={{width: '100%', height: 280, backgroundColor: colors.border}}
-        />
+        <View
+          style={{
+            width: '100%',
+            height: 280,
+            backgroundColor: colors.border,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          {!imgErrored && imgSrc ? (
+            <Image
+              source={{uri: imgSrc}}
+              style={{width: '100%', height: '100%'}}
+              resizeMode="cover"
+              onError={() => {
+                if (!imgErrored) {
+                  setImgErrored(true);
+                  setImgSrc(fallbackImage(product.id));
+                }
+              }}
+            />
+          ) : (
+            <Text style={{fontSize: 72}}>{emojiFor(product.id)}</Text>
+          )}
+        </View>
         <View style={{padding: spacing.lg}}>
           <Text style={{color: colors.text, fontSize: 20, fontWeight: '800'}}>
             {product.title}
@@ -85,15 +112,6 @@ export default function ProductDetailScreen() {
                 ${product.priceUsd.toFixed(2)}
               </Text>
             ) : null}
-            <Text
-              style={{
-                color: colors.textSub,
-                fontSize: 14,
-                marginLeft: spacing.md,
-                textDecorationLine: 'line-through',
-              }}>
-              ¥{product.marketPrice}
-            </Text>
           </View>
 
           {/* 支付方式标签 */}
@@ -119,7 +137,7 @@ export default function ProductDetailScreen() {
           ) : null}
 
           <Card style={{marginTop: spacing.md, padding: spacing.md}}>
-            <Row label={t('mall.price')} value={`¥${product.price}`} />
+            <Row label={t('mall.price')} value={`$${product.price.toFixed(2)}`} />
             <Row label={t('mall.sales')} value={String(product.sales)} />
             <Row label={t('mall.stock')} value={String(product.stock)} />
             <Row label={t('mall.delivery')} value={t(DELIVERY_LABEL[product.delivery] as any)} />
@@ -225,3 +243,10 @@ const actionBtn = (colors: any, primary: boolean): any => ({
   justifyContent: 'center',
 });
 const actionText = {color: '#fff', fontSize: 15, fontWeight: '700' as const};
+
+const EMOJI_POOL = ['🎫', '☕', '🚇', '🎁', '🎧', '🛍️', '🎟️', '💳', '🥤', '📱'];
+function emojiFor(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return EMOJI_POOL[h % EMOJI_POOL.length];
+}

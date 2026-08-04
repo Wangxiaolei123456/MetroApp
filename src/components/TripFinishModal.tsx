@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useRef} from 'react';
 import {Modal, Pressable, StyleSheet, Text, View} from 'react-native';
 import {useTripStore} from '@/store/useTripStore';
 import {computeTripPoints} from '@/services/pointsEngine';
@@ -10,6 +10,9 @@ import {radius, spacing, typography} from '@/theme/theme';
 import {useT} from '@/i18n';
 import {FireworksBurst} from '@/components/FireworksBurst';
 import {FadeInUp} from '@/components/motion';
+import {usePointsStore} from '@/store/usePointsStore';
+import {useUserStore} from '@/store/useUserStore';
+import {reportRidePoints} from '@/services/rewardsService';
 
 /** 行程结束结算弹窗（全局），含收益与烟花 */
 export function TripFinishModal() {
@@ -20,18 +23,50 @@ export function TripFinishModal() {
   const clear = useTripStore((s) => s.clearFinishResult);
   const cityId = useSettingsStore((s) => s.cityId);
   const graph = getCityGraph(cityId);
+  const reportedRef = useRef<string | null>(null);
+
+  const summary = trip?.summary;
+  const calc = summary ? computeTripPoints(summary) : null;
+  const celebrated = trip?.status === 'completed';
+  const token =
+    summary && celebrated ? Math.round(summary.stationCount * APP_CONFIG.rideTokenPerStop * 1e8) / 1e8 : 0;
+
+  // 行程完成且有积分时：上报后端发放乘车积分（幂等），并同步本地余额
+  useEffect(() => {
+    if (!trip || !celebrated || !calc || !summary) return;
+    const tripId = trip.id ?? `trip_${summary.startTime ?? Date.now()}`;
+    if (reportedRef.current === tripId) return;
+    reportedRef.current = tripId;
+    const userId = useUserStore.getState().profile?.id;
+    if (!userId) return;
+    reportRidePoints({
+      tripId,
+      amount: calc.total,
+      stops: summary.stationCount,
+      rides: 1,
+    })
+      .then(() => usePointsStore.getState().syncFromBackend().catch(() => {}))
+      .catch(() => {
+        // 后端不可用时本地兜底记录
+        usePointsStore.getState().addTransactions([
+          {
+            id: `ptx_ride_${tripId}`,
+            userId: 'me',
+            amount: calc.total,
+            source: 'ride',
+            refId: tripId,
+            createdAt: Date.now(),
+            locked: false,
+            note: `乘车 ${summary.stationCount} 站`,
+          },
+        ]);
+      });
+  }, [trip, celebrated, calc, summary]);
 
   if (!trip) return null;
 
   const name = (id?: string) =>
     id ? graph.stations.find((s) => s.id === id)?.name ?? id : '—';
-  const summary = trip.summary;
-  const calc = summary ? computeTripPoints(summary) : null;
-  const celebrated = trip.status === 'completed';
-  const token =
-    summary && celebrated
-      ? Math.round(summary.stationCount * APP_CONFIG.rideTokenPerStop * 1e8) / 1e8
-      : 0;
 
   return (
     <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={clear}>

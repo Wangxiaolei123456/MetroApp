@@ -158,7 +158,13 @@ export type PointsSource =
   | 'task'
   | 'invite'
   | 'newbie'
-  | 'airdrop_exchange';
+  | 'airdrop_exchange'
+  | 'activity'
+  | 'airdrop'
+  | 'exchange'
+  | 'refund'
+  | 'admin'
+  | 'other';
 
 export interface PointsTransaction {
   id: string;
@@ -272,7 +278,7 @@ export interface TaskDef {
   description: string;
   /** 目标进度，如乘坐 3 站 */
   target: number;
-  metric: 'stops' | 'rides' | 'checkins' | 'binds';
+  metric: 'stops' | 'rides' | 'binds';
   rewardPoints: number;
   rewardToken?: number;
 }

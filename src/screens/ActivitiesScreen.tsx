@@ -13,7 +13,8 @@ import {useSettingsStore} from '@/store/useSettingsStore';
 import {useT} from '@/i18n';
 
 export function ActivitiesScreen() {
-  const {enrolledIds, checkedInIds, enroll, checkin} = useActivityStore();
+  const {enrolledIds, enroll, load} = useActivityStore();
+  const [checkedInIds, setCheckedInIds] = useState<string[]>([]);
   const t = useT();
   const {colors} = useTheme();
   const cityId = useSettingsStore((s) => s.cityId);
@@ -30,12 +31,15 @@ export function ActivitiesScreen() {
       .then((list) => alive && setActivities(list))
       .catch(() => {})
       .finally(() => alive && setLoading(false));
+    load().catch(() => {});
     return () => {
       alive = false;
     };
-  }, [cityId]);
+  }, [cityId, load]);
 
+  // 到店打卡：仅在地理围栏内记录（积分由后端报名发放，避免重复）
   const handleCheckin = async (act: Activity) => {
+    if (checkedInIds.includes(act.id)) return;
     try {
       const loc = await getCurrentLocation();
       const d = distanceTo(loc, act.location);
@@ -43,11 +47,8 @@ export function ActivitiesScreen() {
         setMsg(t('act.tooFar', {d: Math.round(d)}));
         return;
       }
-      await checkin(act.id);
-      setMsg(
-        t('act.checkinOk', {n: act.rewardPoints ?? 0}) +
-          (act.rewardToken ? t('act.checkinToken', {t: act.rewardToken}) : ''),
-      );
+      setCheckedInIds((ids) => [...ids, act.id]);
+      setMsg(t('act.checkinOk', {n: act.rewardPoints ?? 0}) + (act.rewardToken ? t('act.checkinToken', {t: act.rewardToken}) : ''));
     } catch {
       setMsg(t('act.noLocation'));
     }

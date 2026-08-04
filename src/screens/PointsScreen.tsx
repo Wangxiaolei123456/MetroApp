@@ -1,5 +1,6 @@
-import React from 'react';
+import React, {useCallback} from 'react';
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {usePointsStore, selectPointsStats} from '@/store/usePointsStore';
 import {useUserStore} from '@/store/useUserStore';
 import {currentLevel, nextLevel} from '@/services/pointsEngine';
@@ -20,6 +21,12 @@ const SOURCE_KEY: Record<PointsSource, TKey> = {
   invite: 'points.source.invite',
   newbie: 'points.source.newbie',
   airdrop_exchange: 'points.source.airdrop_exchange',
+  activity: 'points.source.activity',
+  airdrop: 'points.source.airdrop',
+  exchange: 'points.source.exchange',
+  refund: 'points.source.refund',
+  admin: 'points.source.admin',
+  other: 'points.source.other',
 };
 
 export function PointsScreen() {
@@ -34,6 +41,13 @@ export function PointsScreen() {
   const progress = next
     ? Math.min(100, Math.round(((profile?.totalStops ?? 0) / next.minTotalStops) * 100))
     : 100;
+
+  // 每次进入积分页都拉后端账本（任务奖励等只写在后端）
+  useFocusEffect(
+    useCallback(() => {
+      usePointsStore.getState().syncFromBackend().catch(() => {});
+    }, []),
+  );
 
   const badges = BADGES.map((b) => ({
     ...b,

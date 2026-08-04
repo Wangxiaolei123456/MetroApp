@@ -5,9 +5,7 @@ import {
   recordGps as recordGpsSvc,
   finalizeTrip,
 } from '@/services/tripEngine';
-import {buildTripTransactions} from '@/services/pointsEngine';
 import {storage, STORAGE_KEYS} from '@/services/storage';
-import {usePointsStore} from './usePointsStore';
 import {useUserStore} from './useUserStore';
 import {useWalletStore} from './useWalletStore';
 import {usePlanStore} from './usePlanStore';
@@ -37,9 +35,6 @@ interface TripState {
   setStationAlert: (alert: StationAlert | null) => void;
   clearFinishResult: () => void;
 }
-
-const LOCK_RATIO = 0.3; // C5 30% 积分锁定至空投周期结束
-const UNLOCK_AT = Date.now() + 30 * 86400000;
 
 export const useTripStore = create<TripState>((set, get) => ({
   active: null,
@@ -92,13 +87,7 @@ export const useTripStore = create<TripState>((set, get) => ({
     usePlanStore.getState().clear();
     const finalized = finalizeTrip(active);
     if (finalized.status === 'completed' && finalized.summary) {
-      const txs = buildTripTransactions(
-        finalized.userId,
-        finalized.id,
-        finalized.summary,
-        {lockRatio: LOCK_RATIO, unlockAt: UNLOCK_AT},
-      );
-      await usePointsStore.getState().addTransactions(txs);
+      // 积分由 TripFinishModal 上报后端并 sync；此处不再写本地锁定流水，避免与后端账本冲突、可用余额看不到。
       await useUserStore.getState().addRide();
       await useUserStore.getState().addStops(finalized.summary.stationCount);
       await useWalletStore.getState().creditRideTokens(finalized.summary.stationCount);

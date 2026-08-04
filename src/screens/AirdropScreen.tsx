@@ -3,9 +3,9 @@ import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {usePointsStore, selectPointsStats} from '@/store/usePointsStore';
 import {useUserStore} from '@/store/useUserStore';
-import {useWalletStore} from '@/store/useWalletStore';
-import {checkAll, claimAirdrop} from '@/services/airdropService';
+import {checkAll} from '@/services/airdropService';
 import {fetchAirdropRules} from '@/services/opsService';
+import {claimAirdrop as claimAirdropBackend, getMyAirdropIds} from '@/services/rewardsService';
 import {SAMPLE_AIRDROPS} from '@/data/opsSample';
 import {ThemeColors, spacing, typography} from '@/theme/theme';
 import {useTheme, useThemedStyles} from '@/theme/ThemeProvider';
@@ -19,15 +19,17 @@ export function AirdropScreen() {
   const styles = useThemedStyles(makeStyles);
   const stats = usePointsStore(selectPointsStats);
   const profile = useUserStore((s) => s.profile);
-  const walletMeta = useWalletStore((s) => s.meta);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   // H4 空投规则：从后端拉取，失败回落本地种子
   const [rules, setRules] = useState(SAMPLE_AIRDROPS);
+  // 已领取的空投（后端记录），用于禁用已领按钮
+  const [claimedIds, setClaimedIds] = useState<string[]>([]);
 
   useEffect(() => {
     let alive = true;
     fetchAirdropRules().then((r) => alive && setRules(r));
+    getMyAirdropIds().then((ids) => alive && setClaimedIds(ids)).catch(() => {});
     return () => {
       alive = false;
     };
@@ -43,16 +45,17 @@ export function AirdropScreen() {
   );
 
   const handleClaim = async (ruleId: string) => {
-    if (!walletMeta) {
-      setResult(t('airdrop.needWallet'));
-      return;
-    }
+    if (claimedIds.includes(ruleId)) return;
     const rule = eligibility.find((e) => e.rule.id === ruleId)?.rule;
     if (!rule) return;
     setClaiming(ruleId);
     try {
-      const r = await claimAirdrop(rule, walletMeta.address); // F2 链上签名领取
-      setResult(t('airdrop.claimOk', {n: r.amount, tx: r.txHash}));
+      // 后端发放积分空投（H2 链上资格校验由后端完成）
+      const r = await claimAirdropBackend(ruleId);
+      setResult(t('airdrop.claimOk', {n: r.reward, tx: ''}));
+      setClaimedIds((ids) => [...ids, ruleId]);
+      // 同步最新积分余额
+      await usePointsStore.getState().syncFromBackend().catch(() => {});
     } catch (e) {
       setResult(t('airdrop.claimFail', {msg: (e as Error).message}));
     } finally {

@@ -498,12 +498,7 @@ export default function OrderConfirmScreen() {
               <Text style={{color: colors.textSub}}>{t('mall.totalPrice')}</Text>
               <Text style={{color: colors.text, fontWeight: '700'}}>${totalPrice.toFixed(2)}</Text>
             </View>
-          ) : (
-            <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 8}}>
-              <Text style={{color: colors.textSub}}>{t('mall.totalPrice')}</Text>
-              <Text style={{color: colors.text, fontWeight: '700'}}>¥{totalPrice}</Text>
-            </View>
-          )}
+          ) : null}
           <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 8}}>
             <Text style={{color: colors.textSub}}>{t('mall.myPoints')}</Text>
             <Text style={{color: enough ? colors.text : colors.primary, fontWeight: '700'}}>
